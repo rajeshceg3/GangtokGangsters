@@ -4,17 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discover Gangtok</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="map-container">
+        <button id="load-map-btn">Explore Gangtok</button>
+    </div>
     <div id="map"></div>
     <div id="info-panel">
         <button id="close-panel">&times;</button>
         <h2 id="info-name"></h2>
         <p id="info-description"></p>
     </div>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="script.js"></script>
+    <script>
+        document.getElementById('load-map-btn').addEventListener('click', () => {
+            document.getElementById('map-container').style.display = 'none';
+            document.getElementById('map').style.display = 'block';
+
+            const leafletCss = document.createElement('link');
+            leafletCss.rel = 'stylesheet';
+            leafletCss.href = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css';
+            document.head.appendChild(leafletCss);
+
+            const leafletJs = document.createElement('script');
+            leafletJs.src = 'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js';
+            document.head.appendChild(leafletJs);
+
+            leafletJs.onload = () => {
+                const appScript = document.createElement('script');
+                appScript.src = 'script.js';
+                document.body.appendChild(appScript);
+            };
+        });
+    </script>
 </body>
 </html>

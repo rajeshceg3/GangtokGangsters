@@ -16,9 +16,40 @@ body, html {
     color: var(--text-color);
 }
 
+#map-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    background-color: var(--background-color);
+}
+
+#load-map-btn {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-color);
+    background-color: var(--accent-color);
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+#load-map-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 122, 255, 0.3);
+}
+
 #map {
     width: 100%;
     height: 100%;
+    display: none; /* Initially hidden */
+}
+
+#map.visible {
+    display: block;
 }
 
 #info-panel {
