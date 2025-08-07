@@ -8,11 +8,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="welcome-overlay">
+        <h1>Discover Gangtok</h1>
+    </div>
     <div id="map"></div>
     <div id="info-panel">
         <button id="close-panel">&times;</button>
-        <h2 id="info-name"></h2>
-        <p id="info-description"></p>
+        <img id="info-image" src="" alt="Location Image">
+        <div id="info-content">
+            <h2 id="info-name"></h2>
+            <p id="info-description"></p>
+            <a id="info-link" href="#" target="_blank">Learn More</a>
+        </div>
     </div>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="script.js"></script>
