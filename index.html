@@ -2,25 +2,56 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Discover Gangtok</title>
+
+    <!-- Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons: Phosphor -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="welcome-overlay">
-        <h1>Discover Gangtok</h1>
-    </div>
-    <div id="map"></div>
-    <div id="info-panel">
-        <button id="close-panel">&times;</button>
-        <img id="info-image" src="" alt="Location Image">
-        <div id="info-content">
-            <h2 id="info-name"></h2>
-            <p id="info-description"></p>
-            <a id="info-link" href="#" target="_blank">Learn More</a>
+        <div class="welcome-content">
+            <h1>Discover Gangtok</h1>
+            <p>Experience the jewel of the Himalayas.</p>
+            <button id="explore-btn">
+                <span>Start Exploring</span>
+                <i class="ph ph-arrow-right"></i>
+            </button>
         </div>
     </div>
+
+    <div id="map"></div>
+
+    <div id="info-panel">
+        <div class="panel-handle-mobile"></div>
+        <button id="close-panel" aria-label="Close details">
+            <i class="ph ph-x"></i>
+        </button>
+        <div class="image-container">
+            <img id="info-image" src="" alt="Location Image">
+            <div class="image-overlay"></div>
+        </div>
+        <div id="info-content">
+            <div class="info-header">
+                <h2 id="info-name"></h2>
+                <span class="location-badge">Sikkim</span>
+            </div>
+            <p id="info-description"></p>
+            <a id="info-link" href="#" target="_blank">
+                <span>Learn More</span>
+                <i class="ph ph-arrow-up-right"></i>
+            </a>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="script.js"></script>
 </body>
