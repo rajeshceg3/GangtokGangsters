@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Discover Gangtok</title>
 
-    <!-- Fonts: Inter -->
+    <!-- Fonts: Inter with optimized loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Icons: Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -17,38 +17,66 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+    <!-- Welcome Modal -->
     <div id="welcome-overlay">
-        <div class="welcome-content">
+        <div class="welcome-card">
+            <div class="welcome-icon"><i class="ph-fill ph-mountains"></i></div>
             <h1>Discover Gangtok</h1>
-            <p>Experience the jewel of the Himalayas.</p>
-            <button id="explore-btn">
+            <p>Experience the jewel of the Himalayas through an immersive curated guide.</p>
+            <button id="explore-btn" class="btn-large">
                 <span>Start Exploring</span>
-                <i class="ph ph-arrow-right"></i>
+                <i class="ph-bold ph-arrow-right"></i>
             </button>
         </div>
     </div>
 
+    <!-- Map Container -->
     <div id="map"></div>
+    <div class="map-overlay-vignette"></div>
 
-    <div id="info-panel">
-        <div class="panel-handle-mobile"></div>
-        <button id="close-panel" aria-label="Close details">
-            <i class="ph ph-x"></i>
-        </button>
-        <div class="image-container">
-            <img id="info-image" src="" alt="Location Image">
-            <div class="image-overlay"></div>
+    <!-- Desktop Floating Controls -->
+    <div class="map-controls-dock">
+        <div class="control-btn" id="zoom-in" title="Zoom In">
+            <i class="ph-bold ph-plus"></i>
         </div>
+        <div class="control-btn" id="zoom-out" title="Zoom Out">
+            <i class="ph-bold ph-minus"></i>
+        </div>
+        <div class="control-btn" id="reset-view" title="Reset View">
+            <i class="ph-bold ph-arrows-out-simple"></i>
+        </div>
+    </div>
+
+    <!-- Info Panel (Shared Desktop Card / Mobile Bottom Sheet) -->
+    <div id="info-panel">
+
+        <!-- Mobile Handle -->
+        <div class="panel-handle-mobile">
+            <div class="handle-pill"></div>
+        </div>
+
+        <div class="image-wrapper">
+            <img id="info-image" src="" alt="Location Preview">
+            <button id="close-panel" class="close-btn" aria-label="Close">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </div>
+
         <div id="info-content">
-            <div class="info-header">
-                <h2 id="info-name"></h2>
-                <span class="location-badge">Sikkim</span>
+            <div class="location-meta">
+                <span class="meta-tag">Sikkim</span>
+                <span class="meta-tag">Landmark</span>
             </div>
+            <h2 id="info-name"></h2>
             <p id="info-description"></p>
-            <a id="info-link" href="#" target="_blank">
-                <span>Learn More</span>
-                <i class="ph ph-arrow-up-right"></i>
-            </a>
+
+            <div class="action-bar">
+                <a id="info-link" href="#" target="_blank" class="btn-primary">
+                    <span>Read More</span>
+                    <i class="ph-bold ph-arrow-up-right"></i>
+                </a>
+            </div>
         </div>
     </div>
 

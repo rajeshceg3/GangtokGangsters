@@ -1,29 +1,45 @@
 :root {
-    /* Color Palette */
-    --bg-dark: #0a0e14;
-    --bg-card: rgba(18, 24, 38, 0.85);
-    --bg-card-border: rgba(255, 255, 255, 0.08);
+    /* --- Modern Palette (Stripe-inspired Dark Mode) --- */
+    --bg-main: #020408; /* Deepest black-blue */
+    --bg-surface: rgba(15, 23, 42, 0.6); /* Glassy surface */
+    --bg-surface-opaque: #0f172a;
+    --bg-surface-hover: rgba(30, 41, 59, 0.7);
 
-    --text-primary: #ffffff;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(255, 255, 255, 0.15);
+
+    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-tertiary: #64748b;
+    --text-accent: #38bdf8; /* Sky blue */
 
-    --accent-primary: #3b82f6; /* A nice royal blue */
-    --accent-glow: rgba(59, 130, 246, 0.5);
-    --accent-hover: #2563eb;
+    --brand-primary: #3b82f6;
+    --brand-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 
-    --success: #10b981;
+    /* --- Shadows & Glows --- */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-card:
+        0 4px 6px -1px rgba(0, 0, 0, 0.5),
+        0 2px 4px -1px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.05); /* Top highlight */
+    --shadow-floating:
+        0 20px 25px -5px rgba(0, 0, 0, 0.6),
+        0 10px 10px -5px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.05); /* Border ring */
 
-    /* Spacing & Layout */
-    --radius-lg: 24px;
-    --radius-md: 16px;
-    --radius-sm: 8px;
+    --glow-primary: 0 0 20px rgba(59, 130, 246, 0.4);
 
-    --shadow-card: 0 20px 40px -8px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.1);
+    /* --- Typography --- */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
-    /* Animation */
+    /* --- Animation --- */
+    --ease-out-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
     --ease-elastic: cubic-bezier(0.34, 1.56, 0.64, 1);
-    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body, html {
@@ -32,39 +48,100 @@ body, html {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background-color: var(--bg-dark);
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
+/* --- Map & Background --- */
 #map {
     width: 100%;
     height: 100%;
     z-index: 1;
+    background: var(--bg-main);
 }
 
-/* --- Map Customization --- */
+/* Vignette Overlay for cinematic feel */
+.map-overlay-vignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 0%, rgba(2, 4, 8, 0.3) 100%);
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+}
+
+/* Leaflet Overrides */
 .leaflet-container {
-    background-color: var(--bg-dark) !important;
+    background-color: var(--bg-main) !important;
+    font-family: var(--font-sans) !important;
 }
 
-/* Remove default link styles in attribution for cleaner look, or style them */
 .leaflet-control-attribution {
-    background: rgba(10, 14, 20, 0.7) !important;
-    backdrop-filter: blur(4px);
+    background: rgba(2, 4, 8, 0.5) !important;
+    backdrop-filter: blur(8px);
     color: var(--text-tertiary) !important;
-    font-family: 'Inter', sans-serif;
     border-radius: 4px;
-    margin-right: 10px;
-    margin-bottom: 5px;
+    margin: 0 12px 12px 0;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
 }
 .leaflet-control-attribution a {
     color: var(--text-secondary) !important;
     text-decoration: none;
 }
-.leaflet-control-attribution a:hover {
-    color: var(--text-primary) !important;
+
+/* --- Map Controls (Desktop Dock) --- */
+.map-controls-dock {
+    position: absolute;
+    bottom: 32px;
+    right: 32px;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.control-btn {
+    width: 44px;
+    height: 44px;
+    background: var(--bg-surface-opaque);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-card);
+    transition: all 0.2s var(--ease-out-quart);
+}
+
+.control-btn:hover {
+    background: var(--bg-surface-hover);
+    transform: translateY(-2px);
+    border-color: var(--border-highlight);
+}
+
+/* Mobile: Move controls up to avoid bottom sheet */
+@media (max-width: 768px) {
+    .map-controls-dock {
+        bottom: auto;
+        top: 24px;
+        right: 16px;
+    }
+    .control-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%; /* Round on mobile looks better */
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+    }
 }
 
 /* --- Markers --- */
@@ -72,25 +149,26 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
-    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
-    transition: transform 0.3s var(--ease-elastic);
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+    transition: transform 0.4s var(--ease-elastic);
     cursor: pointer;
+    will-change: transform;
 }
 
 .custom-marker-container:hover {
-    transform: scale(1.15) translateY(-2px);
+    transform: scale(1.2) translateY(-4px);
     z-index: 1000 !important;
 }
 
 .pin-head {
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-hover));
+    width: 36px;
+    height: 36px;
+    background: var(--brand-gradient);
     border: 2px solid #fff;
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
     position: relative;
-    box-shadow: 0 0 20px var(--accent-glow);
+    box-shadow: var(--glow-primary);
 }
 
 .pin-head::after {
@@ -98,211 +176,228 @@ body, html {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background: #fff;
     border-radius: 50%;
     transform: translate(-50%, -50%);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .custom-marker-container.selected .pin-head {
     background: #fff;
-    border-color: var(--accent-primary);
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 25px var(--brand-primary);
 }
 .custom-marker-container.selected .pin-head::after {
-    background: var(--accent-primary);
+    background: var(--brand-primary);
 }
 
-/* --- Info Panel --- */
+/* --- Info Panel (Shared) --- */
 #info-panel {
     position: fixed;
-    background-color: var(--bg-card);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--bg-card-border);
-    box-shadow: var(--shadow-card);
-    box-sizing: border-box;
     z-index: 1000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: transform 0.5s var(--ease-elastic), opacity 0.4s ease;
+    background: var(--bg-surface);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-floating);
+    transition: transform 0.6s var(--ease-out-quart), opacity 0.5s ease;
 }
 
-/* Desktop Styles */
+/* DESKTOP Specifics */
 @media (min-width: 769px) {
     #info-panel {
         top: 24px;
         left: 24px;
-        width: 380px;
+        width: 400px;
         height: auto;
         max-height: calc(100vh - 48px);
-        border-radius: var(--radius-lg);
-        transform: translateX(-120%);
+        border-radius: 20px;
+        transform: translateX(-40px);
         opacity: 0;
+        pointer-events: none;
     }
 
     #info-panel.visible {
         transform: translateX(0);
         opacity: 1;
+        pointer-events: auto;
     }
 
-    .panel-handle-mobile {
-        display: none;
+    /* Scrollbar refinement for desktop */
+    #info-content::-webkit-scrollbar {
+        width: 6px;
+    }
+    #info-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    #info-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+    #info-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
     }
 }
 
-/* Mobile Styles */
+/* MOBILE Specifics */
 @media (max-width: 768px) {
     #info-panel {
         bottom: 0;
         left: 0;
         width: 100%;
-        max-height: 85vh;
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        /* Start with just enough height to hint or completely hidden off screen */
+        height: auto;
+        max-height: 80vh;
+        border-radius: 24px 24px 0 0;
         transform: translateY(100%);
         border-bottom: none;
+        border-left: none;
+        border-right: none;
+        background: rgba(10, 14, 20, 0.95); /* slightly more opaque for performance/readability on mobile */
     }
 
     #info-panel.visible {
         transform: translateY(0);
     }
+}
 
+/* --- Panel Internal Layout --- */
+.panel-handle-mobile {
+    display: none; /* Desktop default */
+}
+
+@media (max-width: 768px) {
     .panel-handle-mobile {
-        width: 40px;
-        height: 4px;
+        display: block;
+        width: 100%;
+        padding: 12px 0 8px 0;
+        cursor: grab;
+    }
+    .handle-pill {
+        width: 36px;
+        height: 5px;
         background: rgba(255, 255, 255, 0.2);
-        border-radius: 2px;
-        margin: 12px auto 8px auto;
-        flex-shrink: 0;
+        border-radius: 100px;
+        margin: 0 auto;
     }
 }
 
-#close-panel {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 32px;
-    height: 32px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: all 0.2s ease;
-    backdrop-filter: blur(4px);
-}
-
-#close-panel:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.05);
-}
-
-#close-panel i {
-    font-size: 16px;
-}
-
-.image-container {
+.image-wrapper {
     position: relative;
     width: 100%;
-    height: 220px;
+    height: 240px;
     flex-shrink: 0;
+    overflow: hidden;
+    background: #0f172a;
 }
 
 #info-image {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0; /* JS will fade in */
+    transition: opacity 0.5s ease;
+}
+#info-image.loaded {
+    opacity: 1;
 }
 
-.image-overlay {
+.close-btn {
     position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 60%;
-    background: linear-gradient(to bottom, transparent, var(--bg-card));
-    pointer-events: none;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(4px);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s;
+    z-index: 10;
+}
+.close-btn:hover {
+    background: rgba(0,0,0,0.6);
+    transform: scale(1.1);
 }
 
 #info-content {
-    padding: 0 24px 24px 24px;
+    padding: 24px 28px 32px 28px;
     overflow-y: auto;
-    /* Custom Scrollbar */
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
+    max-height: 60vh; /* fallback */
 }
 
-#info-content::-webkit-scrollbar {
-    width: 6px;
-}
-#info-content::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.2);
-    border-radius: 3px;
-}
-
-.info-header {
-    margin-bottom: 12px;
+.location-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.meta-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-accent);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(56, 189, 248, 0.2);
 }
 
 #info-name {
-    margin: 0;
-    font-size: 24px;
+    margin: 0 0 16px 0;
+    font-size: 28px;
     font-weight: 700;
-    letter-spacing: -0.5px;
-    line-height: 1.2;
-}
-
-.location-badge {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--accent-primary);
-    background: rgba(59, 130, 246, 0.15);
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--text-primary);
 }
 
 #info-description {
-    margin: 0 0 24px 0;
     font-size: 15px;
     line-height: 1.6;
     color: var(--text-secondary);
+    margin: 0 0 28px 0;
 }
 
-#info-link {
+.action-bar {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-primary {
+    flex: 1;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    background-color: var(--accent-primary);
+    background: var(--brand-primary);
     color: white;
     text-decoration: none;
     font-weight: 600;
     font-size: 14px;
-    padding: 10px 20px;
-    border-radius: var(--radius-sm);
+    padding: 12px 20px;
+    border-radius: 12px;
     transition: all 0.2s ease;
-    box-shadow: 0 4px 12px var(--accent-glow);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
-#info-link:hover {
-    background-color: var(--accent-hover);
+.btn-primary:hover {
+    background: #2563eb;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px var(--accent-glow);
-}
-
-#info-link i {
-    font-size: 16px;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 /* --- Welcome Overlay --- */
@@ -312,12 +407,13 @@ body, html {
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at center, #1e293b 0%, #0a0e14 100%);
+    background: var(--bg-main);
     z-index: 2000;
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: opacity 0.8s ease, visibility 0.8s;
+    transition: opacity 0.6s ease, visibility 0.6s;
+    /* Subtle noise texture via image or gradient can be added here if desired */
 }
 
 #welcome-overlay.hidden {
@@ -326,65 +422,71 @@ body, html {
     pointer-events: none;
 }
 
-.welcome-content {
+.welcome-card {
     text-align: center;
-    max-width: 600px;
-    padding: 40px;
-    animation: fadeUp 1s var(--ease-elastic) forwards;
+    max-width: 500px;
+    padding: 48px;
+    animation: fadeScale 0.8s var(--ease-elastic) forwards;
 }
 
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes fadeScale {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.welcome-icon {
+    font-size: 48px;
+    color: var(--brand-primary);
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 20px var(--brand-primary));
 }
 
 #welcome-overlay h1 {
-    font-size: 56px;
+    font-size: 48px;
     font-weight: 800;
     margin: 0 0 16px 0;
-    letter-spacing: -2px;
-    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    letter-spacing: -0.04em;
+    line-height: 1;
+    background: linear-gradient(to bottom right, #fff, #94a3b8);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 30px rgba(255,255,255,0.2));
 }
 
 #welcome-overlay p {
-    font-size: 20px;
+    font-size: 18px;
     color: var(--text-secondary);
     margin: 0 0 40px 0;
-    font-weight: 400;
+    line-height: 1.5;
 }
 
-#explore-btn {
-    background: var(--text-primary);
-    color: var(--bg-dark);
+.btn-large {
+    background: white;
+    color: var(--bg-main);
     border: none;
-    font-family: inherit;
     font-size: 16px;
-    font-weight: 600;
-    padding: 14px 32px;
+    font-weight: 700;
+    padding: 16px 36px;
     border-radius: 100px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     transition: all 0.3s var(--ease-elastic);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
 }
 
-#explore-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+.btn-large:hover {
+    transform: scale(1.04);
+    box-shadow: 0 0 40px rgba(255, 255, 255, 0.25);
 }
 
-/* Mobile Tweaks for Welcome */
+/* Mobile Welcome Tweaks */
 @media (max-width: 768px) {
-    #welcome-overlay h1 {
-        font-size: 40px;
+    .welcome-card {
+        padding: 32px;
+        width: 100%;
     }
-    #welcome-overlay p {
-        font-size: 18px;
-        padding: 0 20px;
+    #welcome-overlay h1 {
+        font-size: 36px;
     }
 }
