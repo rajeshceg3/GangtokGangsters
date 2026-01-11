@@ -74,15 +74,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Welcome Screen Interaction
     exploreBtn.addEventListener('click', () => {
         welcomeOverlay.classList.add('hidden');
-
-        // Cinematic entry fly-to
         setTimeout(() => {
             map.flyTo([initialView.lat, initialView.lng], 14, {
                 animate: true,
-                duration: 2.0,
-                easeLinearity: 0.2
+                duration: 2.5,
+                easeLinearity: 0.1
             });
-        }, 200);
+        }, 300);
     });
 
     // Close Panel Logic
@@ -92,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedMarkerElement.classList.remove('selected');
             selectedMarkerElement = null;
         }
-        // Fade out image
         infoImage.classList.remove('loaded');
     };
 
@@ -111,17 +108,55 @@ document.addEventListener('DOMContentLoaded', () => {
     resetViewBtn.addEventListener('click', () => {
         map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
             animate: true,
-            duration: 1.5
+            duration: 1.5,
+            easeLinearity: 0.2
         });
         closeInfoPanel();
     });
 
-    // Mobile Bottom Sheet "Swipe" Mock Logic
-    // For a true swipe, we'd need touch start/move/end listeners calculating deltaY.
-    // For this prototype, we'll keep it simple: clicking the handle closes it.
+    // --- Mobile Bottom Sheet Swipe Logic ---
     const mobileHandle = document.querySelector('.panel-handle-mobile');
-    mobileHandle.addEventListener('click', closeInfoPanel);
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
 
+    // Use passive listeners for better scroll performance
+    mobileHandle.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+        currentY = startY; // Initialize currentY to prevent stale values on tap
+        isDragging = true;
+        infoPanel.style.transition = 'none'; // Disable transition for direct tracking
+    }, { passive: true });
+
+    mobileHandle.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        currentY = e.touches[0].clientY;
+        const deltaY = currentY - startY;
+
+        // Only allow dragging down
+        if (deltaY > 0) {
+            infoPanel.style.transform = `translateY(${deltaY}px)`;
+        }
+    }, { passive: true });
+
+    mobileHandle.addEventListener('touchend', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        infoPanel.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Re-enable physics
+
+        const deltaY = currentY - startY;
+        // If dragged down more than 100px, close it
+        if (deltaY > 100) {
+            closeInfoPanel();
+            // Reset transform after animation (handled by class removal mostly, but good to be clean)
+            setTimeout(() => {
+                infoPanel.style.transform = '';
+            }, 500);
+        } else {
+            // Snap back
+            infoPanel.style.transform = ''; // Removes inline style, reverting to CSS class state (0px)
+        }
+    });
 
     // Create Markers
     locations.forEach(location => {
@@ -133,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `,
             iconSize: [40, 40],
-            iconAnchor: [20, 40]
+            iconAnchor: [20, 40] // Centered horizontally, bottom vertically
         });
 
         const marker = L.marker(location.coords, { icon: customIcon }).addTo(map);
@@ -165,31 +200,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show Panel
             infoPanel.classList.add('visible');
+            // Ensure no inline transform style interferes
+            infoPanel.style.transform = '';
 
-            // Fly to location
-            // Responsive Offset Logic
+            // Fly to location with Offset Logic
             let targetLat = location.coords[0];
             let targetLng = location.coords[1];
 
-            // If mobile, we might want to center slightly north so the pin is visible above the sheet
             if (window.innerWidth <= 768) {
-                // Approximate offset calculation (roughly 0.002 degrees for zoom 15)
-                // This keeps the pin visible in the top half of the screen
-                // targetLat -= 0.002; // Actually we want the map center to be South of the pin, so pin moves North.
-                // Wait, if panel is at bottom, we want pin to be in top area. So map center should be south of pin.
-                // So targetLat (center) should be < pinLat.
-                // targetLat -= 0.002;
-                // But map.flyTo takes the CENTER.
-                // So we want to set the center such that the Pin is at (50%, 30%) of screen.
+                // Mobile: Panel at bottom. Center map such that pin is in the top 40% of screen.
+                // We need to shift the center SOUTH so the pin appears NORTH.
+                // At zoom 15, ~0.005 degrees is a reasonable vertical shift.
+                targetLat -= 0.004;
             } else {
-                // Desktop: Panel is on left. Map center should be slightly Right.
-                // targetLng -= 0.002;
+                // Desktop: Panel at left. Center map such that pin is in right 60% of screen.
+                // Shift center LEFT so pin appears RIGHT.
+                targetLng -= 0.004;
             }
 
             map.flyTo([targetLat, targetLng], 15, {
                 animate: true,
-                duration: 1.2,
-                easeLinearity: 0.25
+                duration: 1.5,
+                easeLinearity: 0.2
             });
         });
     });
