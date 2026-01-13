@@ -208,14 +208,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let targetLng = location.coords[1];
 
             if (window.innerWidth <= 768) {
-                // Mobile: Panel at bottom. Center map such that pin is in the top 40% of screen.
+                // Mobile: Panel at bottom. Center map such that pin is in the top 25% of screen.
                 // We need to shift the center SOUTH so the pin appears NORTH.
                 // At zoom 15, ~0.005 degrees is a reasonable vertical shift.
-                targetLat -= 0.004;
+                targetLat -= 0.005;
             } else {
                 // Desktop: Panel at left. Center map such that pin is in right 60% of screen.
                 // Shift center LEFT so pin appears RIGHT.
-                targetLng -= 0.004;
+                targetLng -= 0.005;
             }
 
             map.flyTo([targetLat, targetLng], 15, {
