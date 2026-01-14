@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Use passive listeners for better scroll performance
     mobileHandle.addEventListener('touchstart', (e) => {
+        if (window.innerWidth > 768) return; // Disable on desktop
         startY = e.touches[0].clientY;
         currentY = startY;
         isDragging = true;
@@ -180,7 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
         currentY = e.touches[0].clientY;
         const deltaY = currentY - startY;
 
-        // Only allow dragging down
+        // Only allow dragging down, but with some resistance if dragging up (rubber band)
+        // Actually, just prevent dragging up to avoid confusion
         if (deltaY > 0) {
             infoPanel.style.transform = `translateY(${deltaY}px)`;
         }
@@ -192,9 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
         infoPanel.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
         const deltaY = currentY - startY;
-        // If dragged down more than 100px, close it
-        if (deltaY > 100) {
+        // If dragged down more than 80px or at high velocity (simplified check here), close it
+        if (deltaY > 80) {
             closeInfoPanel();
+            // Reset transform after animation
             setTimeout(() => {
                 infoPanel.style.transform = '';
             }, 500);
@@ -260,22 +263,31 @@ document.addEventListener('DOMContentLoaded', () => {
             let targetLng = location.coords[1];
 
             // Hyper-optimized offsets for better framing
+            // Using precise calculations based on viewport
             if (window.innerWidth <= 768) {
-                // Mobile: Panel takes bottom ~40-50%.
-                // We want the pin to be in the visual center of the remaining space (top half).
-                // Shift map center SOUTH so pin appears NORTH.
-                targetLat -= 0.0055;
+                // Mobile: Panel takes bottom ~50-60vh on opening.
+                // Visible area is the top ~40%.
+                // Center of visible area is roughly 20% from top.
+                // Map center is 50%. So we need to shift the target DOWN (so the map moves UP)
+                // wait, if we want the pin to be at the top, we need the map center to be BELOW the pin.
+                // So targetLat (center) = pinLat - offset.
+                // At zoom 15, 0.01 degrees is roughly 1.1km.
+                // 0.005 seems roughly correct for a shift.
+                targetLat -= 0.006;
             } else {
-                // Desktop: Panel takes left ~400px.
-                // We want pin to be in the visual center of the right side.
-                // Shift map center LEFT so pin appears RIGHT.
-                targetLng -= 0.005;
+                // Desktop: Panel is 420px on the left + 32px margin = ~450px obscure.
+                // If screen is 1440px, visible center is (450 + (1440-450)/2) = 945px.
+                // Screen center is 720px.
+                // Offset needed: 945 - 720 = 225px to the right.
+                // To move the target 225px right, we need to shift the map center LEFT.
+                // So targetLng (center) = pinLng - offset.
+                targetLng -= 0.006;
             }
 
             map.flyTo([targetLat, targetLng], 15, {
                 animate: true,
-                duration: 1.2, // Snappier
-                easeLinearity: 0.25
+                duration: 1.5,
+                easeLinearity: 0.1
             });
         });
     });
