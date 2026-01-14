@@ -35,6 +35,48 @@ document.addEventListener('DOMContentLoaded', () => {
             coords: [27.3491, 88.6221],
             image: "https://upload.wikimedia.org/wikipedia/commons/1/11/Ganesh_Tok.jpg",
             url: "https://en.wikipedia.org/wiki/Ganesh_Tok"
+        },
+        {
+            name: "Ban Jhakri Falls",
+            description: "A landscaped energy park featuring a 100-foot waterfall, shamanistic statues, and beautiful gardens highlighting the Ban Jhakri tradition.",
+            coords: [27.3508, 88.6036],
+            image: "https://upload.wikimedia.org/wikipedia/commons/e/e0/A_scenic_view_of_Ban_Jhakri_Falls_Gangtok_Sikkim_India_2015.jpg",
+            url: "https://en.wikipedia.org/wiki/Banjhakri_Falls_and_Energy_Park"
+        },
+        {
+            name: "Tashi View Point",
+            description: "Famous for its sunrise views, offering a spectacular panorama of Mount Kanchenjunga and the Siniolchu peaks on a clear day.",
+            coords: [27.3685, 88.6128],
+            image: "https://upload.wikimedia.org/wikipedia/commons/a/a7/Tashi_view_point%2C_Gangtok.jpg",
+            url: "https://en.wikipedia.org/wiki/Gangtok#Tourism"
+        },
+        {
+            name: "Enchey Monastery",
+            description: "A 200-year-old monastery belonging to the Nyingma order, built on a site believed to be blessed by Lama Drupthob Karpo.",
+            coords: [27.3448, 88.6206],
+            image: "https://upload.wikimedia.org/wikipedia/commons/d/db/Enchey_Monastery_-_Gangtok_-_Sikkim_-_India.jpg",
+            url: "https://en.wikipedia.org/wiki/Enchey_Monastery"
+        },
+        {
+            name: "Do Drul Chorten",
+            description: "A massive stupa surrounded by 108 prayer wheels. It is one of the most important and significant stupas in Sikkim.",
+            coords: [27.3163, 88.6046],
+            image: "https://upload.wikimedia.org/wikipedia/commons/8/87/Do-Drul_Chorten_Stupa.jpg",
+            url: "https://en.wikipedia.org/wiki/Dro-dul_Chorten"
+        },
+        {
+            name: "Namgyal Institute of Tibetology",
+            description: "A museum and research centre dedicated to the religion, history, language, art and culture of the people of the Tibetan cultural area.",
+            coords: [27.3155, 88.6045],
+            image: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Namgyal_Institute_of_Tibetology.jpg",
+            url: "https://en.wikipedia.org/wiki/Namgyal_Institute_of_Tibetology"
+        },
+        {
+            name: "Hanuman Tok",
+            description: "A temple complex dedicated to Lord Hanuman, maintained by the Indian Army, offering bird's-eye views of Gangtok and the surrounding hills.",
+            coords: [27.3562, 88.6318],
+            image: "https://upload.wikimedia.org/wikipedia/commons/e/e1/Hanuman_Tok.jpg",
+            url: "https://en.wikipedia.org/wiki/Hanuman_Tok"
         }
     ];
 
