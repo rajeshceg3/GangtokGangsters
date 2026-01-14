@@ -53,7 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomOutBtn = document.getElementById('zoom-out');
     const resetViewBtn = document.getElementById('reset-view');
 
-    let selectedMarkerElement = null;
+    let selectedMarker = null; // Leaflet Marker object
+    let selectedMarkerElement = null; // DOM Element
     const initialView = { lat: 27.3314, lng: 88.6138, zoom: 13 };
 
     // Initialize Map
@@ -77,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             map.flyTo([initialView.lat, initialView.lng], 14, {
                 animate: true,
-                duration: 2.5,
-                easeLinearity: 0.1
+                duration: 2.0,
+                easeLinearity: 0.2
             });
         }, 300);
     });
@@ -89,6 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedMarkerElement) {
             selectedMarkerElement.classList.remove('selected');
             selectedMarkerElement = null;
+        }
+        if (selectedMarker) {
+            selectedMarker.setZIndexOffset(0); // Reset z-index
+            selectedMarker = null;
         }
         infoImage.classList.remove('loaded');
     };
@@ -109,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
         map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
             animate: true,
             duration: 1.5,
-            easeLinearity: 0.2
+            easeLinearity: 0.25
         });
         closeInfoPanel();
     });
@@ -123,9 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use passive listeners for better scroll performance
     mobileHandle.addEventListener('touchstart', (e) => {
         startY = e.touches[0].clientY;
-        currentY = startY; // Initialize currentY to prevent stale values on tap
+        currentY = startY;
         isDragging = true;
-        infoPanel.style.transition = 'none'; // Disable transition for direct tracking
+        infoPanel.style.transition = 'none';
     }, { passive: true });
 
     mobileHandle.addEventListener('touchmove', (e) => {
@@ -142,19 +147,18 @@ document.addEventListener('DOMContentLoaded', () => {
     mobileHandle.addEventListener('touchend', (e) => {
         if (!isDragging) return;
         isDragging = false;
-        infoPanel.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Re-enable physics
+        infoPanel.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
         const deltaY = currentY - startY;
         // If dragged down more than 100px, close it
         if (deltaY > 100) {
             closeInfoPanel();
-            // Reset transform after animation (handled by class removal mostly, but good to be clean)
             setTimeout(() => {
                 infoPanel.style.transform = '';
             }, 500);
         } else {
             // Snap back
-            infoPanel.style.transform = ''; // Removes inline style, reverting to CSS class state (0px)
+            infoPanel.style.transform = '';
         }
     });
 
@@ -168,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `,
             iconSize: [40, 40],
-            iconAnchor: [20, 40] // Centered horizontally, bottom vertically
+            iconAnchor: [20, 40]
         });
 
         const marker = L.marker(location.coords, { icon: customIcon }).addTo(map);
@@ -176,15 +180,22 @@ document.addEventListener('DOMContentLoaded', () => {
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
 
+            // Deselect previous
             if (selectedMarkerElement) {
                 selectedMarkerElement.classList.remove('selected');
             }
+            if (selectedMarker) {
+                selectedMarker.setZIndexOffset(0);
+            }
 
+            // Select new
             const element = e.target.getElement().querySelector('.custom-marker-container');
             if (element) {
                 element.classList.add('selected');
                 selectedMarkerElement = element;
             }
+            selectedMarker = marker;
+            marker.setZIndexOffset(1000); // Bring to front
 
             // Update Info
             infoName.textContent = location.name;
@@ -200,28 +211,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Show Panel
             infoPanel.classList.add('visible');
-            // Ensure no inline transform style interferes
             infoPanel.style.transform = '';
 
             // Fly to location with Offset Logic
             let targetLat = location.coords[0];
             let targetLng = location.coords[1];
 
+            // Hyper-optimized offsets for better framing
             if (window.innerWidth <= 768) {
-                // Mobile: Panel at bottom. Center map such that pin is in the top 40% of screen.
-                // We need to shift the center SOUTH so the pin appears NORTH.
-                // At zoom 15, ~0.005 degrees is a reasonable vertical shift.
-                targetLat -= 0.004;
+                // Mobile: Panel takes bottom ~40-50%.
+                // We want the pin to be in the visual center of the remaining space (top half).
+                // Shift map center SOUTH so pin appears NORTH.
+                targetLat -= 0.0055;
             } else {
-                // Desktop: Panel at left. Center map such that pin is in right 60% of screen.
-                // Shift center LEFT so pin appears RIGHT.
-                targetLng -= 0.004;
+                // Desktop: Panel takes left ~400px.
+                // We want pin to be in the visual center of the right side.
+                // Shift map center LEFT so pin appears RIGHT.
+                targetLng -= 0.005;
             }
 
             map.flyTo([targetLat, targetLng], 15, {
                 animate: true,
-                duration: 1.5,
-                easeLinearity: 0.2
+                duration: 1.2, // Snappier
+                easeLinearity: 0.25
             });
         });
     });
