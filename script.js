@@ -265,23 +265,16 @@ document.addEventListener('DOMContentLoaded', () => {
             // Hyper-optimized offsets for better framing
             // Using precise calculations based on viewport
             if (window.innerWidth <= 768) {
-                // Mobile: Panel takes bottom ~50-60vh on opening.
-                // Visible area is the top ~40%.
-                // Center of visible area is roughly 20% from top.
-                // Map center is 50%. So we need to shift the target DOWN (so the map moves UP)
-                // wait, if we want the pin to be at the top, we need the map center to be BELOW the pin.
-                // So targetLat (center) = pinLat - offset.
-                // At zoom 15, 0.01 degrees is roughly 1.1km.
-                // 0.005 seems roughly correct for a shift.
-                targetLat -= 0.006;
+                // Mobile: Panel takes bottom ~80vh. Visible area is top 20%.
+                // Center of visible area is 10% from top.
+                // Screen center is 50%. Offset needed ~40% of screen height.
+                // At Zoom 15, this translates roughly to 0.01 degrees.
+                targetLat -= 0.009;
             } else {
-                // Desktop: Panel is 420px on the left + 32px margin = ~450px obscure.
-                // If screen is 1440px, visible center is (450 + (1440-450)/2) = 945px.
-                // Screen center is 720px.
-                // Offset needed: 945 - 720 = 225px to the right.
-                // To move the target 225px right, we need to shift the map center LEFT.
-                // So targetLng (center) = pinLng - offset.
-                targetLng -= 0.006;
+                // Desktop: Panel (380px) + Margin (32px) = 412px left offset.
+                // We want the pin centered in the remaining space.
+                // Shift map center to the left to bring pin right.
+                targetLng -= 0.004;
             }
 
             map.flyTo([targetLat, targetLng], 15, {
