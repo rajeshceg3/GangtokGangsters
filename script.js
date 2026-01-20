@@ -94,10 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomInBtn = document.getElementById('zoom-in');
     const zoomOutBtn = document.getElementById('zoom-out');
     const resetViewBtn = document.getElementById('reset-view');
+    const exploreRandomBtn = document.getElementById('explore');
 
     let selectedMarker = null; // Leaflet Marker object
     let selectedMarkerElement = null; // DOM Element
     const initialView = { lat: 27.3314, lng: 88.6138, zoom: 13 };
+    const locationMarkers = [];
 
     // Initialize Map
     const map = L.map('map', {
@@ -120,14 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             map.flyTo([initialView.lat, initialView.lng], 14, {
                 animate: true,
-                duration: 2.0,
-                easeLinearity: 0.2
+                duration: 2.5,
+                easeLinearity: 0.25
             });
         }, 300);
     });
 
     // Close Panel Logic
     const closeInfoPanel = () => {
+        // Only fly out if a marker was actually selected
+        if (selectedMarker) {
+            map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
+                animate: true,
+                duration: 1.8,
+                easeLinearity: 0.2
+            });
+        }
+
         infoPanel.classList.remove('visible');
         if (selectedMarkerElement) {
             selectedMarkerElement.classList.remove('selected');
@@ -152,13 +163,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Control Dock Logic
     zoomInBtn.addEventListener('click', () => map.setZoom(map.getZoom() + 1));
     zoomOutBtn.addEventListener('click', () => map.setZoom(map.getZoom() - 1));
-    resetViewBtn.addEventListener('click', () => {
-        map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
-            animate: true,
-            duration: 1.5,
-            easeLinearity: 0.25
-        });
-        closeInfoPanel();
+    resetViewBtn.addEventListener('click', closeInfoPanel);
+
+    exploreRandomBtn.addEventListener('click', () => {
+        if (locationMarkers.length === 0) return;
+
+        let randomIndex;
+        let randomMarker;
+        // Avoid picking the same marker twice in a row if possible
+        do {
+            randomIndex = Math.floor(Math.random() * locationMarkers.length);
+            randomMarker = locationMarkers[randomIndex];
+        } while (randomMarker === selectedMarker && locationMarkers.length > 1);
+
+        randomMarker.fire('click');
     });
 
     // --- Mobile Bottom Sheet Swipe Logic ---
@@ -221,6 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const marker = L.marker(location.coords, { icon: customIcon }).addTo(map);
+        locationMarkers.push(marker);
 
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
@@ -279,8 +298,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             map.flyTo([targetLat, targetLng], 15, {
                 animate: true,
-                duration: 1.5,
-                easeLinearity: 0.1
+                duration: 1.8,
+                easeLinearity: 0.2
             });
         });
     });
