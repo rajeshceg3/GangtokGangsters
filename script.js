@@ -119,12 +119,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // Welcome Screen Interaction
     exploreBtn.addEventListener('click', () => {
         welcomeOverlay.classList.add('hidden');
+
+        // Start atmospheric particles
+        if (window.particleSystem) {
+            window.particleSystem.start();
+            document.getElementById('atmosphere').classList.add('active');
+        }
+
         setTimeout(() => {
             map.flyTo([initialView.lat, initialView.lng], 14, {
                 animate: true,
                 duration: 2.5,
                 easeLinearity: 0.25
             });
+
+            // Stagger reveal markers after fly-in begins
+            setTimeout(() => {
+                locationMarkers.forEach((marker, index) => {
+                    setTimeout(() => {
+                        const el = marker.getElement().querySelector('.custom-marker-container');
+                        if (el) el.classList.add('revealed');
+                    }, index * 100); // 100ms stagger between each pin
+                });
+            }, 1000);
+
         }, 300);
     });
 
@@ -244,6 +262,24 @@ document.addEventListener('DOMContentLoaded', () => {
         marker.on('click', (e) => {
             L.DomEvent.stopPropagation(e);
 
+            // Snap content elements to their initial state
+            const contentElements = document.querySelectorAll('#info-content > .location-meta, #info-content > #info-name, #info-content > #info-description, #info-content > .action-bar');
+            contentElements.forEach(el => {
+                el.style.transition = 'none';
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(16px)';
+            });
+
+            // Force reflow to register the initial state
+            void infoPanel.offsetWidth;
+
+            // Clear inline styles so CSS classes take over and trigger transitions
+            contentElements.forEach(el => {
+                el.style.transition = '';
+                el.style.opacity = '';
+                el.style.transform = '';
+            });
+
             // Deselect previous
             if (selectedMarkerElement) {
                 selectedMarkerElement.classList.remove('selected');
@@ -303,4 +339,77 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     });
+});
+
+// --- Atmospheric Particle System (Snow/Mist) ---
+class ParticleSystem {
+    constructor(canvasId) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) return;
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.isRunning = false;
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize(), { passive: true });
+
+        // Create initial particles
+        const particleCount = window.innerWidth > 768 ? 100 : 50;
+        for (let i = 0; i < particleCount; i++) {
+            this.particles.push(this.createParticle());
+        }
+    }
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+    }
+
+    createParticle() {
+        return {
+            x: Math.random() * this.width,
+            y: Math.random() * this.height,
+            size: Math.random() * 2 + 0.5,
+            speedX: Math.random() * 0.5 - 0.25,
+            speedY: Math.random() * 0.5 + 0.1, // Drifting downwards
+            opacity: Math.random() * 0.5 + 0.1
+        };
+    }
+
+    update() {
+        if (!this.isRunning) return;
+
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
+        for (let i = 0; i < this.particles.length; i++) {
+            let p = this.particles[i];
+
+            p.x += p.speedX;
+            p.y += p.speedY;
+
+            // Wrap around
+            if (p.y > this.height) p.y = 0;
+            if (p.x > this.width) p.x = 0;
+            if (p.x < 0) p.x = this.width;
+
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+            this.ctx.fill();
+        }
+
+        requestAnimationFrame(() => this.update());
+    }
+
+    start() {
+        if (this.isRunning) return;
+        this.isRunning = true;
+        this.update();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.particleSystem = new ParticleSystem('atmosphere');
 });
