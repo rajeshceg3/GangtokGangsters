@@ -80,6 +80,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ];
 
+    // Utility
+    const triggerHaptic = (pattern = 10) => {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+    };
+
     // UI Elements
     const welcomeOverlay = document.getElementById('welcome-overlay');
     const exploreBtn = document.getElementById('explore-btn');
@@ -118,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Welcome Screen Interaction
     exploreBtn.addEventListener('click', () => {
+        triggerHaptic(20);
         welcomeOverlay.classList.add('hidden');
 
         // Start atmospheric particles
@@ -146,8 +152,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     });
 
+    // --- 3D Tilt Effect on Desktop Panel ---
+    infoPanel.addEventListener('mousemove', (e) => {
+        // Only apply on desktop
+        if (window.innerWidth <= 768) return;
+
+        const rect = infoPanel.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+
+        // Calculate tilt
+        const tiltX = (y - centerY) / centerY * -10; // Max tilt 10deg
+        const tiltY = (x - centerX) / centerX * 10;
+
+        infoPanel.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
+        infoPanel.style.transition = 'transform 0.1s ease-out';
+    }, { passive: true });
+
+    infoPanel.addEventListener('mouseleave', () => {
+        if (window.innerWidth <= 768) return;
+        // Reset transform to let CSS class rules take over (or reset to 0)
+        infoPanel.style.transform = '';
+        infoPanel.style.transition = 'transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1)';
+    });
+
     // Close Panel Logic
     const closeInfoPanel = () => {
+        triggerHaptic();
         // Only fly out if a marker was actually selected
         if (selectedMarker) {
             map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
@@ -184,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     resetViewBtn.addEventListener('click', closeInfoPanel);
 
     exploreRandomBtn.addEventListener('click', () => {
+        triggerHaptic();
         if (locationMarkers.length === 0) return;
 
         let randomIndex;
@@ -206,6 +241,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use passive listeners for better scroll performance
     mobileHandle.addEventListener('touchstart', (e) => {
         if (window.innerWidth > 768) return; // Disable on desktop
+        triggerHaptic();
         startY = e.touches[0].clientY;
         currentY = startY;
         isDragging = true;
@@ -226,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mobileHandle.addEventListener('touchend', (e) => {
         if (!isDragging) return;
+        triggerHaptic();
         isDragging = false;
         infoPanel.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
 
@@ -260,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
         locationMarkers.push(marker);
 
         marker.on('click', (e) => {
+            triggerHaptic(15);
             L.DomEvent.stopPropagation(e);
 
             // Snap content elements to their initial state
@@ -350,8 +388,17 @@ class ParticleSystem {
         this.particles = [];
         this.isRunning = false;
 
+        this.mouseX = -1000;
+        this.mouseY = -1000;
+
         this.resize();
         window.addEventListener('resize', () => this.resize(), { passive: true });
+
+        // Track mouse movements for interactive particles
+        window.addEventListener('mousemove', (e) => {
+            this.mouseX = e.clientX;
+            this.mouseY = e.clientY;
+        }, { passive: true });
 
         // Create initial particles
         const particleCount = window.innerWidth > 768 ? 100 : 50;
@@ -385,6 +432,18 @@ class ParticleSystem {
 
         for (let i = 0; i < this.particles.length; i++) {
             let p = this.particles[i];
+
+            // Interactive wind/repulsion effect based on mouse cursor
+            const dx = p.x - this.mouseX;
+            const dy = p.y - this.mouseY;
+            const distance = Math.max(0.1, Math.sqrt(dx * dx + dy * dy));
+            const maxDistance = 150; // Interaction radius
+
+            if (distance < maxDistance) {
+                const force = (maxDistance - distance) / maxDistance;
+                p.x += (dx / distance) * force * 2;
+                p.y += (dy / distance) * force * 2;
+            }
 
             p.x += p.speedX;
             p.y += p.speedY;
