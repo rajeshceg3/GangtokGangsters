@@ -68,6 +68,27 @@ body, html {
     overscroll-behavior: none;
 }
 
+/* --- Ambient Glow --- */
+#cursor-glow {
+    position: fixed;
+    top: -150px;
+    left: -150px;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: screen;
+    will-change: transform;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#cursor-glow.active {
+    opacity: 1;
+}
+
 /* --- Map & Background --- */
 #map {
     width: 100%;
@@ -213,7 +234,6 @@ body, html {
 
 .control-btn:hover {
     background: rgba(40, 40, 50, 0.8);
-    transform: translateY(-2px);
     border-color: rgba(255,255,255,0.2);
     color: var(--text-primary);
     box-shadow: 0 8px 20px -4px rgba(0,0,0,0.5);
@@ -434,10 +454,17 @@ body, html {
     transition: opacity 0.5s ease;
     transform: scale(1.1);
 }
+@keyframes kenBurns {
+    0% { transform: scale(1.1) translate(0, 0); }
+    50% { transform: scale(1.15) translate(-2%, -2%); }
+    100% { transform: scale(1.1) translate(0, 0); }
+}
+
 #info-image.loaded {
     opacity: 1;
-    transform: scale(1);
-    transition: opacity 0.5s ease, transform 8s ease-out;
+    transform: scale(1.1);
+    transition: opacity 0.5s ease;
+    animation: kenBurns 20s infinite ease-in-out forwards;
 }
 
 .close-btn {
@@ -666,7 +693,6 @@ body, html {
 }
 
 .btn-large:hover {
-    transform: translateY(-2px);
     box-shadow: 0 12px 40px rgba(255, 255, 255, 0.25);
 }
 .btn-large:active {
