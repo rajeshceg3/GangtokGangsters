@@ -85,6 +85,52 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navigator.vibrate) navigator.vibrate(pattern);
     };
 
+    // Immersive Cursor Glow
+    const cursorGlow = document.getElementById('cursor-glow');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let glowX = mouseX;
+    let glowY = mouseY;
+
+    // Ambient light trailing the cursor
+    if (window.innerWidth > 768) {
+        cursorGlow.classList.add('active');
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }, { passive: true });
+
+        const renderGlow = () => {
+            glowX += (mouseX - glowX) * 0.1;
+            glowY += (mouseY - glowY) * 0.1;
+            cursorGlow.style.transform = `translate(${glowX}px, ${glowY}px)`;
+            requestAnimationFrame(renderGlow);
+        };
+        requestAnimationFrame(renderGlow);
+    }
+
+    // Interactive Button Magnetism
+    const makeMagnetic = (element) => {
+        if (window.innerWidth <= 768) return;
+
+        element.addEventListener('mousemove', (e) => {
+            const rect = element.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+
+            // Subtle pull
+            element.style.transform = `translate(${x * 0.3}px, ${y * 0.3}px)`;
+        });
+
+        element.addEventListener('mouseleave', () => {
+            element.style.transform = '';
+            element.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+            setTimeout(() => {
+                element.style.transition = '';
+            }, 400);
+        });
+    };
+
     // UI Elements
     const welcomeOverlay = document.getElementById('welcome-overlay');
     const exploreBtn = document.getElementById('explore-btn');
@@ -100,6 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomOutBtn = document.getElementById('zoom-out');
     const resetViewBtn = document.getElementById('reset-view');
     const exploreRandomBtn = document.getElementById('explore');
+
+    // Apply Magnetism
+    makeMagnetic(exploreBtn);
+    makeMagnetic(zoomInBtn);
+    makeMagnetic(zoomOutBtn);
+    makeMagnetic(resetViewBtn);
+    makeMagnetic(exploreRandomBtn);
 
     let selectedMarker = null; // Leaflet Marker object
     let selectedMarkerElement = null; // DOM Element
@@ -122,6 +175,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }).addTo(map);
 
     // Welcome Screen Interaction
+    const welcomeCard = document.querySelector('.welcome-card');
+    welcomeOverlay.addEventListener('mousemove', (e) => {
+        if (window.innerWidth <= 768) return;
+        const rect = welcomeOverlay.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const tiltX = (y - centerY) / centerY * -5;
+        const tiltY = (x - centerX) / centerX * 5;
+        welcomeCard.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
+        welcomeCard.style.transition = 'transform 0.1s ease-out';
+    }, { passive: true });
+
+    welcomeOverlay.addEventListener('mouseleave', () => {
+        if (window.innerWidth <= 768) return;
+        welcomeCard.style.transform = '';
+        welcomeCard.style.transition = 'transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1)';
+    });
+
     exploreBtn.addEventListener('click', () => {
         triggerHaptic(20);
         welcomeOverlay.classList.add('hidden');
