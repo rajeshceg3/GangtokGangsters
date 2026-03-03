@@ -1,3 +1,58 @@
+// --- Lightweight Audio Engine ---
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+const playTone = (freq = 440, type = 'sine', duration = 0.1, vol = 0.1) => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+    gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + duration);
+};
+
+// --- Dynamic Color Extraction ---
+const getAverageColor = (imgElement) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = imgElement.naturalWidth || imgElement.width || 1;
+    canvas.height = imgElement.naturalHeight || imgElement.height || 1;
+
+    try {
+        ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+        // Sample center area to avoid borders
+        const data = ctx.getImageData(canvas.width * 0.25, canvas.height * 0.25, canvas.width * 0.5, canvas.height * 0.5).data;
+        let r = 0, g = 0, b = 0, count = 0;
+
+        for (let i = 0; i < data.length; i += 16) { // Sample every 4th pixel
+            r += data[i];
+            g += data[i+1];
+            b += data[i+2];
+            count++;
+        }
+
+        r = Math.floor(r / count);
+        g = Math.floor(g / count);
+        b = Math.floor(b / count);
+
+        // Ensure color isn't too dark or too bright for UI
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        if (luminance < 0.2) { r += 50; g += 50; b += 50; }
+        if (luminance > 0.8) { r -= 50; g -= 50; b -= 50; }
+
+        return {r, g, b};
+    } catch (e) {
+        return {r: 99, g: 102, b: 241}; // Default Indigo
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Data
     const locations = [
@@ -6,77 +61,88 @@ document.addEventListener('DOMContentLoaded', () => {
             description: "The vibrant, pedestrian-only heart of Gangtok. Lined with shops, cafes, and Victorian lamps, it's a pristine, litter-free zone perfect for evening strolls.",
             coords: [27.3314, 88.6138],
             image: "https://upload.wikimedia.org/wikipedia/commons/9/97/M.G._Marg%2C_Gangtok_01.jpg",
-            url: "https://en.wikipedia.org/wiki/Mahatma_Gandhi_Marg_(Gangtok)"
+            url: "https://en.wikipedia.org/wiki/Mahatma_Gandhi_Marg_(Gangtok)",
+            tags: ["Vibrant", "Heart of City"]
         },
         {
             name: "Rumtek Monastery",
             description: "A stunning Tibetan Buddhist monastery and a center of spiritual learning. It houses some of the world's most unique religious art objects and golden stupas.",
             coords: [27.2895, 88.5785],
             image: "https://upload.wikimedia.org/wikipedia/commons/7/75/Rumtek_Monastery_NEW.jpg",
-            url: "https://en.wikipedia.org/wiki/Rumtek_Monastery"
+            url: "https://en.wikipedia.org/wiki/Rumtek_Monastery",
+            tags: ["Spiritual", "Buddhist"]
         },
         {
             name: "Tsomgo Lake",
             description: "A breathtaking glacial lake nestled at 12,313 ft. The lake changes color with the seasons, freezes in winter, and is revered as a sacred site by locals.",
             coords: [27.3747, 88.7629],
             image: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Tsongmo_Lake_or_Changu_Lake_-_East_Sikkim.jpg",
-            url: "https://en.wikipedia.org/wiki/Lake_Tsomgo"
+            url: "https://en.wikipedia.org/wiki/Lake_Tsomgo",
+            tags: ["12,313 ft", "Nature"]
         },
         {
             name: "Nathu La Pass",
             description: "A high-altitude mountain pass on the historic Silk Road. It connects Sikkim with Tibet and offers dramatic, snowy Himalayan vistas that leave you speechless.",
             coords: [27.3861, 88.8306],
             image: "https://upload.wikimedia.org/wikipedia/commons/6/65/Nathu_La%2C_a_mountain_pass_in_the_Himalayas_on_the_Indo-China_Border.jpg",
-            url: "https://en.wikipedia.org/wiki/Nathu_La"
+            url: "https://en.wikipedia.org/wiki/Nathu_La",
+            tags: ["High-Altitude", "Historical"]
         },
         {
             name: "Ganesh Tok",
             description: "A small, colorful temple dedicated to Lord Ganesha. Perched on a hill, it offers one of the best panoramic views of Gangtok city and the Kanchenjunga range.",
             coords: [27.3491, 88.6221],
             image: "https://upload.wikimedia.org/wikipedia/commons/1/11/Ganesh_Tok.jpg",
-            url: "https://en.wikipedia.org/wiki/Ganesh_Tok"
+            url: "https://en.wikipedia.org/wiki/Ganesh_Tok",
+            tags: ["Panoramic Views", "Temple"]
         },
         {
             name: "Ban Jhakri Falls",
             description: "A landscaped energy park featuring a 100-foot waterfall, shamanistic statues, and beautiful gardens highlighting the Ban Jhakri tradition.",
             coords: [27.3508, 88.6036],
             image: "https://upload.wikimedia.org/wikipedia/commons/e/e0/A_scenic_view_of_Ban_Jhakri_Falls_Gangtok_Sikkim_India_2015.jpg",
-            url: "https://en.wikipedia.org/wiki/Banjhakri_Falls_and_Energy_Park"
+            url: "https://en.wikipedia.org/wiki/Banjhakri_Falls_and_Energy_Park",
+            tags: ["Nature", "Waterfall"]
         },
         {
             name: "Tashi View Point",
             description: "Famous for its sunrise views, offering a spectacular panorama of Mount Kanchenjunga and the Siniolchu peaks on a clear day.",
             coords: [27.3685, 88.6128],
             image: "https://upload.wikimedia.org/wikipedia/commons/a/a7/Tashi_view_point%2C_Gangtok.jpg",
-            url: "https://en.wikipedia.org/wiki/Gangtok#Tourism"
+            url: "https://en.wikipedia.org/wiki/Gangtok#Tourism",
+            tags: ["Sunrise", "Scenic"]
         },
         {
             name: "Enchey Monastery",
             description: "A 200-year-old monastery belonging to the Nyingma order, built on a site believed to be blessed by Lama Drupthob Karpo.",
             coords: [27.3448, 88.6206],
             image: "https://upload.wikimedia.org/wikipedia/commons/d/db/Enchey_Monastery_-_Gangtok_-_Sikkim_-_India.jpg",
-            url: "https://en.wikipedia.org/wiki/Enchey_Monastery"
+            url: "https://en.wikipedia.org/wiki/Enchey_Monastery",
+            tags: ["Spiritual", "Historical"]
         },
         {
             name: "Do Drul Chorten",
             description: "A massive stupa surrounded by 108 prayer wheels. It is one of the most important and significant stupas in Sikkim.",
             coords: [27.3163, 88.6046],
             image: "https://upload.wikimedia.org/wikipedia/commons/8/87/Do-Drul_Chorten_Stupa.jpg",
-            url: "https://en.wikipedia.org/wiki/Dro-dul_Chorten"
+            url: "https://en.wikipedia.org/wiki/Dro-dul_Chorten",
+            tags: ["Stupa", "Spiritual"]
         },
         {
             name: "Namgyal Institute of Tibetology",
             description: "A museum and research centre dedicated to the religion, history, language, art and culture of the people of the Tibetan cultural area.",
             coords: [27.3155, 88.6045],
             image: "https://upload.wikimedia.org/wikipedia/commons/c/c2/Namgyal_Institute_of_Tibetology.jpg",
-            url: "https://en.wikipedia.org/wiki/Namgyal_Institute_of_Tibetology"
+            url: "https://en.wikipedia.org/wiki/Namgyal_Institute_of_Tibetology",
+            tags: ["Culture", "Museum"]
         },
         {
             name: "Hanuman Tok",
             description: "A temple complex dedicated to Lord Hanuman, maintained by the Indian Army, offering bird's-eye views of Gangtok and the surrounding hills.",
             coords: [27.3562, 88.6318],
             image: "https://upload.wikimedia.org/wikipedia/commons/e/e1/Hanuman_Tok.jpg",
-            url: "https://en.wikipedia.org/wiki/Hanuman_Tok"
+            url: "https://en.wikipedia.org/wiki/Hanuman_Tok",
+            tags: ["Temple", "Scenic"]
         }
     ];
 
@@ -113,6 +179,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const makeMagnetic = (element) => {
         if (window.innerWidth <= 768) return;
 
+        let hasEntered = false;
+
+        element.addEventListener('mouseenter', () => {
+            if (!hasEntered) {
+                playTone(800, 'sine', 0.05, 0.05); // Soft tick on hover
+                hasEntered = true;
+            }
+        });
+
         element.addEventListener('mousemove', (e) => {
             const rect = element.getBoundingClientRect();
             const x = e.clientX - rect.left - rect.width / 2;
@@ -123,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         element.addEventListener('mouseleave', () => {
+            hasEntered = false;
             element.style.transform = '';
             element.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
             setTimeout(() => {
@@ -138,6 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const infoName = document.getElementById('info-name');
     const infoDescription = document.getElementById('info-description');
     const infoImage = document.getElementById('info-image');
+    infoImage.crossOrigin = "Anonymous"; // Required for canvas sampling
     const infoLink = document.getElementById('info-link');
     const closePanel = document.getElementById('close-panel');
 
@@ -197,6 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     exploreBtn.addEventListener('click', () => {
         triggerHaptic(20);
+        playTone(150, 'triangle', 0.8, 0.2); // Deep whoosh
         welcomeOverlay.classList.add('hidden');
 
         // Start atmospheric particles
@@ -255,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Close Panel Logic
     const closeInfoPanel = () => {
         triggerHaptic();
+        playTone(300, 'sine', 0.1, 0.1);
         // Only fly out if a marker was actually selected
         if (selectedMarker) {
             map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
@@ -286,6 +365,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Control Dock Logic
+    const addClickSound = (btn) => btn.addEventListener('click', () => playTone(600, 'sine', 0.05, 0.1));
+    addClickSound(zoomInBtn);
+    addClickSound(zoomOutBtn);
+    addClickSound(resetViewBtn);
+    addClickSound(exploreRandomBtn);
+
     zoomInBtn.addEventListener('click', () => map.setZoom(map.getZoom() + 1));
     zoomOutBtn.addEventListener('click', () => map.setZoom(map.getZoom() - 1));
     resetViewBtn.addEventListener('click', closeInfoPanel);
@@ -371,6 +456,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         marker.on('click', (e) => {
             triggerHaptic(15);
+            playTone(800, 'sine', 0.1, 0.1); // Marker click sound
             L.DomEvent.stopPropagation(e);
 
             // Snap content elements to their initial state
@@ -413,11 +499,36 @@ document.addEventListener('DOMContentLoaded', () => {
             infoDescription.textContent = location.description;
             infoLink.href = location.url;
 
+            // Update Location Meta Tags
+            const metaContainer = document.querySelector('#info-content > .location-meta');
+            if (metaContainer && location.tags) {
+                metaContainer.innerHTML = '';
+                location.tags.forEach(tag => {
+                    const span = document.createElement('span');
+                    span.className = 'meta-tag';
+                    span.textContent = tag;
+                    metaContainer.appendChild(span);
+                });
+            }
+
             // Image Loading Logic
             infoImage.classList.remove('loaded');
             infoImage.src = location.image;
             infoImage.onload = () => {
                 infoImage.classList.add('loaded');
+
+                // Dynamic Theming
+                const color = getAverageColor(infoImage);
+                const rgbString = `${color.r}, ${color.g}, ${color.b}`;
+                const hexString = `#${color.r.toString(16).padStart(2,'0')}${color.g.toString(16).padStart(2,'0')}${color.b.toString(16).padStart(2,'0')}`;
+
+                document.documentElement.style.setProperty('--brand-primary', hexString);
+                document.documentElement.style.setProperty('--brand-glow', `rgba(${rgbString}, 0.6)`);
+                document.documentElement.style.setProperty('--brand-gradient', `linear-gradient(135deg, rgba(${color.r+40}, ${color.g+40}, ${color.b+40}, 1) 0%, ${hexString} 100%)`);
+
+                if (window.particleSystem) {
+                    window.particleSystem.setThemeColor(color);
+                }
             };
 
             // Show Panel
@@ -464,6 +575,9 @@ class ParticleSystem {
         this.mouseX = -1000;
         this.mouseY = -1000;
 
+        this.currentColor = { r: 255, g: 255, b: 255 }; // Default white
+        this.targetColor = { r: 255, g: 255, b: 255 };
+
         this.resize();
         window.addEventListener('resize', () => this.resize(), { passive: true });
 
@@ -487,6 +601,10 @@ class ParticleSystem {
         this.canvas.height = this.height;
     }
 
+    setThemeColor(color) {
+        this.targetColor = color;
+    }
+
     createParticle() {
         return {
             x: Math.random() * this.width,
@@ -500,6 +618,11 @@ class ParticleSystem {
 
     update() {
         if (!this.isRunning) return;
+
+        // Smoothly transition colors
+        this.currentColor.r += (this.targetColor.r - this.currentColor.r) * 0.05;
+        this.currentColor.g += (this.targetColor.g - this.currentColor.g) * 0.05;
+        this.currentColor.b += (this.targetColor.b - this.currentColor.b) * 0.05;
 
         this.ctx.clearRect(0, 0, this.width, this.height);
 
@@ -528,7 +651,7 @@ class ParticleSystem {
 
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+            this.ctx.fillStyle = `rgba(${Math.round(this.currentColor.r)}, ${Math.round(this.currentColor.g)}, ${Math.round(this.currentColor.b)}, ${p.opacity})`;
             this.ctx.fill();
         }
 
