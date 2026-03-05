@@ -18,6 +18,118 @@ const playTone = (freq = 440, type = 'sine', duration = 0.1, vol = 0.1) => {
     oscillator.stop(audioCtx.currentTime + duration);
 };
 
+let activeAmbientNodes = [];
+
+const stopAmbient = () => {
+    activeAmbientNodes.forEach(node => {
+        if (node.gain) {
+            node.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5);
+        }
+        setTimeout(() => {
+            if (node.source) {
+                try { node.source.stop(); } catch (e) {}
+                node.source.disconnect();
+            }
+            if (node.gain) {
+                node.gain.disconnect();
+            }
+        }, 2000);
+    });
+    activeAmbientNodes = [];
+};
+
+const playAmbient = (mode) => {
+    stopAmbient();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.setTargetAtTime(0.05, audioCtx.currentTime, 2); // Fade in
+    gainNode.connect(audioCtx.destination);
+
+    if (mode === 'wind') {
+        // Simple white noise with lowpass filter for wind
+        const bufferSize = audioCtx.sampleRate * 2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400; // Deep wind rumble
+        filter.Q.value = 1;
+
+        // LFO for wind gusting
+        const lfo = audioCtx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.2; // Slow gusts
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 300;
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        lfo.start();
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        noise.start();
+
+        activeAmbientNodes.push({ source: noise, gain: gainNode });
+        activeAmbientNodes.push({ source: lfo, gain: null }); // Keep track to stop LFO
+    } else if (mode === 'spiritual') {
+        // Deep low frequency drones
+        const osc1 = audioCtx.createOscillator();
+        osc1.type = 'sine';
+        osc1.frequency.value = 110; // A2
+
+        const osc2 = audioCtx.createOscillator();
+        osc2.type = 'triangle';
+        osc2.frequency.value = 110.5; // Slight detune for beating
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 300;
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gainNode);
+
+        osc1.start();
+        osc2.start();
+
+        activeAmbientNodes.push({ source: osc1, gain: gainNode });
+        activeAmbientNodes.push({ source: osc2, gain: null });
+    } else if (mode === 'water') {
+        // White noise with bandpass for water rushing
+        const bufferSize = audioCtx.sampleRate * 2;
+        const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = audioCtx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 800; // Higher frequency for water
+        filter.Q.value = 0.5;
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        noise.start();
+
+        activeAmbientNodes.push({ source: noise, gain: gainNode });
+    }
+};
+
 // --- Dynamic Color Extraction ---
 const getAverageColor = (imgElement) => {
     const canvas = document.createElement('canvas');
@@ -321,6 +433,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         infoPanel.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`;
         infoPanel.style.transition = 'transform 0.1s ease-out';
+
+        // Enhanced Parallax for the Image inside
+        // Move opposite to the mouse direction
+        const imgOffsetX = (x - centerX) / centerX * -5; // max 5% translation
+        const imgOffsetY = (y - centerY) / centerY * -5;
+
+        // Ensure image has transition and isn't fighting the Ken Burns animation too much
+        if (infoImage.classList.contains('loaded')) {
+             infoImage.style.transform = `scale(1.15) translate(${imgOffsetX}%, ${imgOffsetY}%)`;
+             infoImage.style.transition = 'transform 0.1s ease-out';
+        }
+
     }, { passive: true });
 
     infoPanel.addEventListener('mouseleave', () => {
@@ -328,12 +452,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // Reset transform to let CSS class rules take over (or reset to 0)
         infoPanel.style.transform = '';
         infoPanel.style.transition = 'transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1)';
+
+        if (infoImage.classList.contains('loaded')) {
+             infoImage.style.transform = '';
+             infoImage.style.transition = 'transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1)';
+        }
     });
 
     // Close Panel Logic
     const closeInfoPanel = () => {
         triggerHaptic();
         playTone(300, 'sine', 0.1, 0.1);
+
+        // Stop immersive experiences
+        stopAmbient();
+        if (window.particleSystem) {
+            window.particleSystem.setMode('default');
+        }
+
         // Only fly out if a marker was actually selected
         if (selectedMarker) {
             map.flyTo([initialView.lat, initialView.lng], initialView.zoom, {
@@ -353,6 +489,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedMarker = null;
         }
         infoImage.classList.remove('loaded');
+        infoImage.style.transform = ''; // Reset parallax
     };
 
     closePanel.addEventListener('click', closeInfoPanel);
@@ -531,6 +668,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
+            // Contextual Immersion based on Tags
+            if (location.tags && window.particleSystem) {
+                const tagStr = location.tags.join(' ').toLowerCase();
+                let newMode = 'default';
+                let ambientMode = null;
+
+                if (tagStr.includes('12,313 ft') || tagStr.includes('high-altitude')) {
+                    newMode = 'snow';
+                    ambientMode = 'wind';
+                } else if (tagStr.includes('spiritual') || tagStr.includes('buddhist') || tagStr.includes('temple')) {
+                    newMode = 'embers';
+                    ambientMode = 'spiritual';
+                } else if (tagStr.includes('nature') || tagStr.includes('waterfall')) {
+                    newMode = 'fireflies';
+                    ambientMode = 'water';
+                }
+
+                window.particleSystem.setMode(newMode);
+                if (ambientMode) playAmbient(ambientMode);
+                else stopAmbient();
+            }
+
             // Show Panel
             infoPanel.classList.add('visible');
             infoPanel.style.transform = '';
@@ -571,6 +730,7 @@ class ParticleSystem {
         this.ctx = this.canvas.getContext('2d');
         this.particles = [];
         this.isRunning = false;
+        this.mode = 'default';
 
         this.mouseX = -1000;
         this.mouseY = -1000;
@@ -588,10 +748,7 @@ class ParticleSystem {
         }, { passive: true });
 
         // Create initial particles
-        const particleCount = window.innerWidth > 768 ? 100 : 50;
-        for (let i = 0; i < particleCount; i++) {
-            this.particles.push(this.createParticle());
-        }
+        this.setMode('default');
     }
 
     resize() {
@@ -605,29 +762,64 @@ class ParticleSystem {
         this.targetColor = color;
     }
 
+    setMode(mode) {
+        if (this.mode === mode) return;
+        this.mode = mode;
+        this.particles = [];
+        const particleCount = window.innerWidth > 768 ? 100 : 50;
+
+        for (let i = 0; i < particleCount; i++) {
+            this.particles.push(this.createParticle());
+        }
+    }
+
     createParticle() {
-        return {
+        let p = {
             x: Math.random() * this.width,
             y: Math.random() * this.height,
             size: Math.random() * 2 + 0.5,
-            speedX: Math.random() * 0.5 - 0.25,
-            speedY: Math.random() * 0.5 + 0.1, // Drifting downwards
-            opacity: Math.random() * 0.5 + 0.1
+            opacity: Math.random() * 0.5 + 0.1,
+            phase: Math.random() * Math.PI * 2 // For pulsating effects
         };
+
+        if (this.mode === 'snow') {
+            p.speedX = Math.random() * 2 - 1;
+            p.speedY = Math.random() * 3 + 2; // Fast downward
+            p.size = Math.random() * 3 + 1;
+        } else if (this.mode === 'embers') {
+            p.speedX = Math.random() * 1 - 0.5;
+            p.speedY = -(Math.random() * 2 + 0.5); // Floating upward
+            p.size = Math.random() * 2 + 1;
+            p.targetColor = { r: 255, g: 150 + Math.random() * 50, b: 50 };
+        } else if (this.mode === 'fireflies') {
+            p.speedX = Math.random() * 1 - 0.5;
+            p.speedY = Math.random() * 1 - 0.5; // Wandering
+            p.size = Math.random() * 2 + 1.5;
+            p.targetColor = { r: 150 + Math.random() * 50, g: 255, b: 150 };
+        } else {
+            // Default mist
+            p.speedX = Math.random() * 0.5 - 0.25;
+            p.speedY = Math.random() * 0.5 + 0.1;
+        }
+
+        return p;
     }
 
     update() {
         if (!this.isRunning) return;
 
-        // Smoothly transition colors
-        this.currentColor.r += (this.targetColor.r - this.currentColor.r) * 0.05;
-        this.currentColor.g += (this.targetColor.g - this.currentColor.g) * 0.05;
-        this.currentColor.b += (this.targetColor.b - this.currentColor.b) * 0.05;
+        // Smoothly transition base colors
+        if (this.mode === 'default' || this.mode === 'snow') {
+            this.currentColor.r += (this.targetColor.r - this.currentColor.r) * 0.05;
+            this.currentColor.g += (this.targetColor.g - this.currentColor.g) * 0.05;
+            this.currentColor.b += (this.targetColor.b - this.currentColor.b) * 0.05;
+        }
 
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         for (let i = 0; i < this.particles.length; i++) {
             let p = this.particles[i];
+            p.phase += 0.05;
 
             // Interactive wind/repulsion effect based on mouse cursor
             const dx = p.x - this.mouseX;
@@ -644,14 +836,55 @@ class ParticleSystem {
             p.x += p.speedX;
             p.y += p.speedY;
 
-            // Wrap around
-            if (p.y > this.height) p.y = 0;
+            // Mode specific updates
+            let renderOpacity = p.opacity;
+            let renderColor = this.currentColor;
+
+            if (this.mode === 'snow') {
+                // Add some sway
+                p.x += Math.sin(p.phase) * 0.5;
+            } else if (this.mode === 'embers') {
+                renderColor = p.targetColor;
+                renderOpacity = p.opacity * (0.5 + Math.sin(p.phase) * 0.5); // Flickering
+                // Add some erratic horizontal movement
+                p.x += (Math.random() - 0.5) * 1;
+            } else if (this.mode === 'fireflies') {
+                renderColor = p.targetColor;
+                renderOpacity = p.opacity * (0.2 + Math.max(0, Math.sin(p.phase))); // Pulsing
+                // Smooth wandering
+                p.speedX += (Math.random() - 0.5) * 0.1;
+                p.speedY += (Math.random() - 0.5) * 0.1;
+                // Clamp speed
+                p.speedX = Math.max(-1, Math.min(1, p.speedX));
+                p.speedY = Math.max(-1, Math.min(1, p.speedY));
+            }
+
+            // Wrap around logic
+            if (this.mode === 'embers') {
+                if (p.y < 0) p.y = this.height;
+            } else if (this.mode === 'fireflies') {
+                if (p.y > this.height) p.y = 0;
+                if (p.y < 0) p.y = this.height;
+            } else {
+                if (p.y > this.height) p.y = 0;
+            }
             if (p.x > this.width) p.x = 0;
             if (p.x < 0) p.x = this.width;
 
             this.ctx.beginPath();
             this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            this.ctx.fillStyle = `rgba(${Math.round(this.currentColor.r)}, ${Math.round(this.currentColor.g)}, ${Math.round(this.currentColor.b)}, ${p.opacity})`;
+
+            // Render with calculated color and opacity
+            this.ctx.fillStyle = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, ${renderOpacity})`;
+
+            // Add glow for fireflies and embers
+            if (this.mode === 'embers' || this.mode === 'fireflies') {
+                 this.ctx.shadowBlur = p.size * 2;
+                 this.ctx.shadowColor = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, 0.8)`;
+            } else {
+                 this.ctx.shadowBlur = 0;
+            }
+
             this.ctx.fill();
         }
 
