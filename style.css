@@ -104,6 +104,20 @@ body, html {
     50% { opacity: 0.85; }
 }
 
+.map-ripple {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid var(--brand-primary);
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+    pointer-events: none;
+    z-index: 999;
+    animation: ripple-anim 0.6s ease-out forwards;
+}
+@keyframes ripple-anim {
+    to { transform: translate(-50%, -50%) scale(4); opacity: 0; }
+}
+
 .map-overlay-vignette {
     position: absolute;
     top: 0;

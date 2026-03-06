@@ -335,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const zoomOutBtn = document.getElementById('zoom-out');
     const resetViewBtn = document.getElementById('reset-view');
     const exploreRandomBtn = document.getElementById('explore');
+    const tourBtn = document.getElementById('tour-mode');
 
     // Apply Magnetism
     makeMagnetic(exploreBtn);
@@ -342,11 +343,52 @@ document.addEventListener('DOMContentLoaded', () => {
     makeMagnetic(zoomOutBtn);
     makeMagnetic(resetViewBtn);
     makeMagnetic(exploreRandomBtn);
+    if (tourBtn) makeMagnetic(tourBtn);
 
     let selectedMarker = null; // Leaflet Marker object
     let selectedMarkerElement = null; // DOM Element
     const initialView = { lat: 27.3314, lng: 88.6138, zoom: 13 };
     const locationMarkers = [];
+
+    let tourInterval = null;
+    let currentTourIndex = -1;
+
+    const stopTour = () => {
+        if (!tourInterval) return;
+        clearInterval(tourInterval);
+        tourInterval = null;
+        if (tourBtn) {
+            tourBtn.setAttribute('data-tooltip', 'Auto Tour');
+            const icon = tourBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('ph-pause');
+                icon.classList.add('ph-play');
+            }
+        }
+    };
+
+    const startTour = () => {
+        if (locationMarkers.length === 0) return;
+        if (tourInterval) stopTour();
+
+        if (tourBtn) {
+            tourBtn.setAttribute('data-tooltip', 'Stop Tour');
+            const icon = tourBtn.querySelector('i');
+            if (icon) {
+                icon.classList.remove('ph-play');
+                icon.classList.add('ph-pause');
+            }
+        }
+
+        const nextLocation = () => {
+            currentTourIndex = (currentTourIndex + 1) % locationMarkers.length;
+            const marker = locationMarkers[currentTourIndex];
+            if (marker) marker.fire('click');
+        };
+
+        nextLocation(); // start immediately
+        tourInterval = setInterval(nextLocation, 10000); // every 10 seconds
+    };
 
     // Initialize Map
     const map = L.map('map', {
@@ -495,9 +537,20 @@ document.addEventListener('DOMContentLoaded', () => {
     closePanel.addEventListener('click', closeInfoPanel);
 
     map.on('click', (e) => {
+        if (e.originalEvent && e.originalEvent.isTrusted) {
+            playTone(200, 'sine', 0.1, 0.05);
+            const ripple = document.createElement('div');
+            ripple.className = 'map-ripple';
+            ripple.style.left = e.containerPoint.x + 'px';
+            ripple.style.top = e.containerPoint.y + 'px';
+            document.getElementById('map').appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+
         // Close if clicking on the map (background)
         if (!e.originalEvent.target.closest('.custom-marker-container')) {
             closeInfoPanel();
+            stopTour();
         }
     });
 
@@ -507,10 +560,22 @@ document.addEventListener('DOMContentLoaded', () => {
     addClickSound(zoomOutBtn);
     addClickSound(resetViewBtn);
     addClickSound(exploreRandomBtn);
+    if (tourBtn) addClickSound(tourBtn);
 
     zoomInBtn.addEventListener('click', () => map.setZoom(map.getZoom() + 1));
     zoomOutBtn.addEventListener('click', () => map.setZoom(map.getZoom() - 1));
     resetViewBtn.addEventListener('click', closeInfoPanel);
+
+    if (tourBtn) {
+        tourBtn.addEventListener('click', () => {
+            triggerHaptic();
+            if (tourInterval) {
+                stopTour();
+            } else {
+                startTour();
+            }
+        });
+    }
 
     exploreRandomBtn.addEventListener('click', () => {
         triggerHaptic();
@@ -591,10 +656,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const marker = L.marker(location.coords, { icon: customIcon }).addTo(map);
         locationMarkers.push(marker);
 
+        marker.on('mouseover', () => {
+            playTone(600, 'sine', 0.05, 0.02);
+        });
+
         marker.on('click', (e) => {
             triggerHaptic(15);
             playTone(800, 'sine', 0.1, 0.1); // Marker click sound
             L.DomEvent.stopPropagation(e);
+
+            // Only stop tour if it was a real user click, not programmatic
+            if (e.originalEvent && e.originalEvent.isTrusted) {
+                stopTour();
+            }
 
             // Snap content elements to their initial state
             const contentElements = document.querySelectorAll('#info-content > .location-meta, #info-content > #info-name, #info-content > #info-description, #info-content > .action-bar');
@@ -680,7 +754,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (tagStr.includes('spiritual') || tagStr.includes('buddhist') || tagStr.includes('temple')) {
                     newMode = 'embers';
                     ambientMode = 'spiritual';
-                } else if (tagStr.includes('nature') || tagStr.includes('waterfall')) {
+                } else if (tagStr.includes('waterfall')) {
+                    newMode = 'rain';
+                    ambientMode = 'water';
+                } else if (tagStr.includes('nature')) {
                     newMode = 'fireflies';
                     ambientMode = 'water';
                 }
@@ -796,6 +873,11 @@ class ParticleSystem {
             p.speedY = Math.random() * 1 - 0.5; // Wandering
             p.size = Math.random() * 2 + 1.5;
             p.targetColor = { r: 150 + Math.random() * 50, g: 255, b: 150 };
+        } else if (this.mode === 'rain') {
+            p.speedX = Math.random() * 0.5 + 0.5; // Slight slant
+            p.speedY = Math.random() * 5 + 5; // Fast downward
+            p.size = Math.random() * 1.5 + 0.5; // Thin lines
+            p.length = Math.random() * 10 + 10; // Length of rain drop
         } else {
             // Default mist
             p.speedX = Math.random() * 0.5 - 0.25;
@@ -871,21 +953,30 @@ class ParticleSystem {
             if (p.x > this.width) p.x = 0;
             if (p.x < 0) p.x = this.width;
 
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-
-            // Render with calculated color and opacity
-            this.ctx.fillStyle = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, ${renderOpacity})`;
-
-            // Add glow for fireflies and embers
-            if (this.mode === 'embers' || this.mode === 'fireflies') {
-                 this.ctx.shadowBlur = p.size * 2;
-                 this.ctx.shadowColor = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, 0.8)`;
+            if (this.mode === 'rain') {
+                this.ctx.beginPath();
+                this.ctx.moveTo(p.x, p.y);
+                this.ctx.lineTo(p.x - p.speedX * p.length / 5, p.y - p.speedY * p.length / 5);
+                this.ctx.strokeStyle = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, ${renderOpacity})`;
+                this.ctx.lineWidth = p.size;
+                this.ctx.stroke();
             } else {
-                 this.ctx.shadowBlur = 0;
-            }
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
 
-            this.ctx.fill();
+                // Render with calculated color and opacity
+                this.ctx.fillStyle = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, ${renderOpacity})`;
+
+                // Add glow for fireflies and embers
+                if (this.mode === 'embers' || this.mode === 'fireflies') {
+                     this.ctx.shadowBlur = p.size * 2;
+                     this.ctx.shadowColor = `rgba(${Math.round(renderColor.r)}, ${Math.round(renderColor.g)}, ${Math.round(renderColor.b)}, 0.8)`;
+                } else {
+                     this.ctx.shadowBlur = 0;
+                }
+
+                this.ctx.fill();
+            }
         }
 
         requestAnimationFrame(() => this.update());
