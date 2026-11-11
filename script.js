@@ -380,17 +380,12 @@ document.addEventListener('DOMContentLoaded', () => {
         tourBar.hidden = false;
         infoPanel.classList.add('touring');
         tourCounter.textContent = `${currentTourIndex + 1} / ${locationMarkers.length}`;
-        tourPrevBtn.disabled = currentTourIndex <= 0;
-        const isLast = currentTourIndex === locationMarkers.length - 1;
-        tourNextBtn.querySelector('span').textContent = isLast ? 'Finish' : 'Next';
-        tourNextBtn.setAttribute('aria-label', isLast ? 'Finish tour' : 'Next stop');
-        tourAutoBtn.classList.toggle('active', tourMode === 'auto');
-        const autoIcon = tourAutoBtn.querySelector('i');
-        if (autoIcon) {
-            autoIcon.classList.toggle('ph-play', tourMode !== 'auto');
-            autoIcon.classList.toggle('ph-pause', tourMode === 'auto');
-        }
-        tourAutoBtn.setAttribute('aria-label', tourMode === 'auto' ? 'Pause auto tour' : 'Resume auto tour');
+        tourPrevBtn.disabled = false;
+        tourNextBtn.querySelector('span').textContent = 'Next';
+        tourNextBtn.setAttribute('aria-label', 'Next stop');
+        // Auto-resume is contextual: it exists only in manual mode.
+        tourAutoBtn.hidden = tourMode !== 'manual';
+        tourAutoBtn.setAttribute('aria-label', 'Resume auto tour');
     };
 
     const goToStop = (index) => {
@@ -442,27 +437,49 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTourBar();
     };
 
+    const stepPrev = () => {
+        if (tourMode === 'off' || locationMarkers.length === 0) return;
+        if (tourMode === 'auto') pauseTour();
+        if (tourMode !== 'manual') return;
+        // Wraps at both ends.
+        goToStop(currentTourIndex <= 0 ? locationMarkers.length - 1 : currentTourIndex - 1);
+    };
+
+    const stepNext = () => {
+        if (locationMarkers.length === 0) return;
+        if (tourMode === 'auto') pauseTour();
+        if (tourMode === 'off') tourMode = 'manual';
+        // Wraps at both ends.
+        goToStop(currentTourIndex >= locationMarkers.length - 1 ? 0 : currentTourIndex + 1);
+    };
+
     if (tourPrevBtn) {
         tourPrevBtn.addEventListener('click', () => {
             triggerHaptic();
-            if (tourMode === 'auto') pauseTour();
-            if (tourMode !== 'manual' || currentTourIndex <= 0) return;
-            goToStop(currentTourIndex - 1);
+            stepPrev();
         });
     }
 
     if (tourNextBtn) {
         tourNextBtn.addEventListener('click', () => {
             triggerHaptic();
-            if (tourMode === 'auto') pauseTour();
-            if (tourMode === 'off') tourMode = 'manual';
-            if (currentTourIndex >= locationMarkers.length - 1) {
-                stopTour(); // Finish
-                return;
-            }
-            goToStop(currentTourIndex + 1);
+            stepNext();
         });
     }
+
+    // Arrow keys mirror the stepper buttons, ignoring text inputs.
+    document.addEventListener('keydown', (e) => {
+        if (tourMode === 'off') return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (e.key === 'ArrowRight') {
+            triggerHaptic();
+            stepNext();
+        } else if (e.key === 'ArrowLeft') {
+            triggerHaptic();
+            stepPrev();
+        }
+    });
 
     if (tourAutoBtn) {
         tourAutoBtn.addEventListener('click', () => {

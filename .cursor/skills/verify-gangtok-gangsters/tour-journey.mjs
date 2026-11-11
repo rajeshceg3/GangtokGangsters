@@ -41,8 +41,7 @@ try {
   const state = () => page.evaluate(() => ({
     counter: document.getElementById('tour-counter')?.textContent,
     name: document.getElementById('info-name')?.textContent,
-    autoActive: document.getElementById('tour-auto')?.classList.contains('active'),
-    autoIconPause: document.getElementById('tour-auto')?.querySelector('i')?.classList.contains('ph-pause'),
+    autoHidden: document.getElementById('tour-auto')?.hidden,
     prevDisabled: document.getElementById('tour-prev')?.disabled,
     nextLabel: document.getElementById('tour-next')?.querySelector('span')?.textContent,
     barHidden: document.getElementById('tour-bar')?.hidden,
@@ -50,9 +49,8 @@ try {
   }));
 
   let s = await state();
-  check('tour starts in auto mode', s.autoActive === true && s.autoIconPause === true, JSON.stringify(s));
+  check('tour starts in auto mode (auto-resume hidden)', s.autoHidden === true, JSON.stringify(s));
   check('place card shows stop 1 (MG Marg)', s.counter === '1 / 11' && s.name === 'MG Marg', JSON.stringify(s));
-  check('prev disabled on first stop', s.prevDisabled === true, JSON.stringify(s));
   check('panel in touring mode', s.touring === true, JSON.stringify(s));
   await page.screenshot({ path: path.join(shotDir, 'tour-1-auto.png') });
 
@@ -60,36 +58,53 @@ try {
   await page.click('#tour-next');
   await sleep(400);
   s = await state();
-  check('next pauses auto into manual', s.autoActive === false, JSON.stringify(s));
+  check('next pauses auto into manual (auto-resume appears)', s.autoHidden === false, JSON.stringify(s));
   check('next steps to stop 2 (Rumtek Monastery)', s.counter === '2 / 11' && s.name === 'Rumtek Monastery', JSON.stringify(s));
-  check('prev enabled on second stop', s.prevDisabled === false, JSON.stringify(s));
   await page.screenshot({ path: path.join(shotDir, 'tour-2-manual.png') });
 
-  // Prev back to stop 1, stays manual
+  // Arrow keys mirror the buttons
+  await page.keyboard.press('ArrowRight');
+  await sleep(400);
+  s = await state();
+  check('ArrowRight steps to stop 3', s.counter === '3 / 11', JSON.stringify(s));
+
+  // Prev back to stop 2, stays manual
   await page.click('#tour-prev');
   await sleep(400);
   s = await state();
-  check('prev steps back to stop 1, still manual', s.counter === '1 / 11' && s.autoActive === false, JSON.stringify(s));
+  check('prev steps back to stop 2, still manual', s.counter === '2 / 11' && s.autoHidden === false, JSON.stringify(s));
 
   // Auto resumes from current stop
   await page.click('#tour-auto');
   await sleep(300);
   s = await state();
-  check('auto resumes from current stop', s.autoActive === true && s.counter === '1 / 11', JSON.stringify(s));
+  check('auto resumes from current stop (auto-resume hidden again)', s.autoHidden === true && s.counter === '2 / 11', JSON.stringify(s));
 
-  // Walk to the last stop manually: pause then next x10
-  await page.click('#tour-next'); // -> manual, stop 2
-  for (let i = 0; i < 9; i++) await page.click('#tour-next');
+  // Walk to the last stop manually: pause then next x9
+  await page.click('#tour-next'); // -> manual, stop 3
+  for (let i = 0; i < 8; i++) await page.click('#tour-next');
   await sleep(400);
   s = await state();
-  check('last stop shows Finish (Hanuman Tok)', s.counter === '11 / 11' && s.name === 'Hanuman Tok' && s.nextLabel === 'Finish', JSON.stringify(s));
-  await page.screenshot({ path: path.join(shotDir, 'tour-3-finish.png') });
+  check('last stop (Hanuman Tok) still shows Next', s.counter === '11 / 11' && s.name === 'Hanuman Tok' && s.nextLabel === 'Next', JSON.stringify(s));
+  await page.screenshot({ path: path.join(shotDir, 'tour-3-last.png') });
 
-  // Finish ends the session
+  // Next wraps to the first stop
   await page.click('#tour-next');
+  await sleep(400);
+  s = await state();
+  check('next wraps to stop 1', s.counter === '1 / 11' && s.name === 'MG Marg', JSON.stringify(s));
+
+  // Prev wraps to the last stop
+  await page.click('#tour-prev');
+  await sleep(400);
+  s = await state();
+  check('prev wraps to stop 11', s.counter === '11 / 11', JSON.stringify(s));
+
+  // Dock toggle ends the session
+  await page.click('#tour-mode');
   await sleep(300);
   s = await state();
-  check('finish ends the tour session', s.barHidden === true && s.touring === false, JSON.stringify(s));
+  check('dock toggle ends the tour session', s.barHidden === true && s.touring === false, JSON.stringify(s));
 
   check('no uncaught js errors during journey', jsErrors.length === 0, jsErrors.slice(0, 3).join(' | '));
 } finally {
