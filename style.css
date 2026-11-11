@@ -516,6 +516,7 @@ body, html {
 #info-content > .location-meta,
 #info-content > #info-name,
 #info-content > #info-description,
+#info-content > .tour-bar,
 #info-content > .action-bar {
     opacity: 0;
     transform: translateY(16px);
@@ -525,6 +526,7 @@ body, html {
 #info-panel.visible #info-content > .location-meta { transition-delay: 0.1s; opacity: 1; transform: translateY(0); }
 #info-panel.visible #info-content > #info-name { transition-delay: 0.2s; opacity: 1; transform: translateY(0); }
 #info-panel.visible #info-content > #info-description { transition-delay: 0.3s; opacity: 1; transform: translateY(0); }
+#info-panel.visible #info-content > .tour-bar { transition-delay: 0.35s; opacity: 1; transform: translateY(0); }
 #info-panel.visible #info-content > .action-bar { transition-delay: 0.4s; opacity: 1; transform: translateY(0); }
 #info-content::-webkit-scrollbar {
     display: none;
@@ -736,4 +738,108 @@ body, html {
     .welcome-icon {
         font-size: 48px;
     }
+}
+
+/* --- Guided Tour Stepper (quiet manual stepping over the auto tour) --- */
+.tour-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: -8px 0 18px 0;
+}
+
+.tour-bar[hidden] {
+    display: none;
+}
+
+.tour-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#tour-counter {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+
+.tour-quiet {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s var(--ease-out-expo);
+}
+
+.tour-quiet:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}
+
+.tour-quiet:active {
+    transform: scale(0.95);
+}
+
+.tour-quiet:disabled {
+    opacity: 0.3;
+    cursor: default;
+    background: transparent;
+    transform: none;
+}
+
+#tour-auto.active {
+    color: var(--text-accent);
+    border-color: rgba(56, 189, 248, 0.25);
+    background: rgba(56, 189, 248, 0.06);
+}
+
+.tour-next {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--brand-gradient);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--brand-glow), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    transition: transform 0.35s var(--ease-elastic), box-shadow 0.3s ease;
+}
+
+.tour-next:hover {
+    transform: translateY(-1px) scale(1.04);
+}
+
+.tour-next:active {
+    transform: scale(0.94);
+}
+
+/* While touring, the stepper owns the single bright action. */
+#info-panel.touring .btn-primary {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+    box-shadow: none;
+}
+
+#info-panel.touring .btn-primary:hover {
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+    transform: none;
+    box-shadow: none;
 }

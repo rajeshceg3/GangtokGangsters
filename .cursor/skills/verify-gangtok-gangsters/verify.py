@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Verification runner for GangtokGangsters. See SKILL.md for the contract."""
-import json, os, re, subprocess, sys, tempfile, time
+import json, os, re, shutil, subprocess, sys, tempfile, time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
@@ -29,6 +29,23 @@ def main():
         errs = [l for l in proc.stderr.splitlines() if 'console' in l.lower() and 'error' in l.lower()
                 and not re.search(r'dbus|gpu|vulkan|ozone|fontconfig', l, re.I)]
         check('render: no js console errors', not errs, errs[:3])
+
+        # Guided-tour journey check (390px, real Chromium) - runs when node deps exist
+        deps = os.environ.get('VERIFY_DEPS', str(Path.home() / '.verify-tour'))
+        tour_js = REPO / '.cursor' / 'skills' / 'verify-gangtok-gangsters' / 'tour-journey.mjs'
+        node = shutil.which('node')
+        if node and (Path(deps) / 'node_modules' / 'puppeteer-core').exists():
+            env = dict(os.environ, VERIFY_DEPS=deps, CHROME_PATH=CHROME)
+            tproc = subprocess.run([node, str(tour_js), 'http://127.0.0.1:%d/' % port, tempfile.gettempdir()],
+                                   capture_output=True, text=True, timeout=180, env=env)
+            for line in tproc.stdout.splitlines():
+                if line.startswith('PASS ') or line.startswith('FAIL '):
+                    name = line[5:].split(' :: ')[0]
+                    check('tour: ' + name, line.startswith('PASS'), line[5:].split(' :: ')[1] if ' :: ' in line[5:] else '')
+            if not tproc.stdout.strip():
+                check('tour: journey runner produced output', False, (tproc.stderr or '')[:400])
+        else:
+            print('SKIP tour journey (node or puppeteer-core missing; set VERIFY_DEPS)')
     finally:
         server.terminate()
     print('FAILURES=%d' % len(failures))

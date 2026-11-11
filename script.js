@@ -352,43 +352,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let tourInterval = null;
     let currentTourIndex = -1;
+    let tourMode = 'off'; // 'off' | 'auto' | 'manual'
+
+    const tourBar = document.getElementById('tour-bar');
+    const tourPrevBtn = document.getElementById('tour-prev');
+    const tourNextBtn = document.getElementById('tour-next');
+    const tourAutoBtn = document.getElementById('tour-auto');
+    const tourCounter = document.getElementById('tour-counter');
+
+    const setDockTourIcon = (active) => {
+        if (!tourBtn) return;
+        tourBtn.setAttribute('data-tooltip', active ? 'Stop Tour' : 'Auto Tour');
+        const icon = tourBtn.querySelector('i');
+        if (icon) {
+            icon.classList.toggle('ph-play', !active);
+            icon.classList.toggle('ph-pause', active);
+        }
+    };
+
+    const updateTourBar = () => {
+        if (!tourBar) return;
+        if (tourMode === 'off') {
+            tourBar.hidden = true;
+            infoPanel.classList.remove('touring');
+            return;
+        }
+        tourBar.hidden = false;
+        infoPanel.classList.add('touring');
+        tourCounter.textContent = `${currentTourIndex + 1} / ${locationMarkers.length}`;
+        tourPrevBtn.disabled = currentTourIndex <= 0;
+        const isLast = currentTourIndex === locationMarkers.length - 1;
+        tourNextBtn.querySelector('span').textContent = isLast ? 'Finish' : 'Next';
+        tourNextBtn.setAttribute('aria-label', isLast ? 'Finish tour' : 'Next stop');
+        tourAutoBtn.classList.toggle('active', tourMode === 'auto');
+        const autoIcon = tourAutoBtn.querySelector('i');
+        if (autoIcon) {
+            autoIcon.classList.toggle('ph-play', tourMode !== 'auto');
+            autoIcon.classList.toggle('ph-pause', tourMode === 'auto');
+        }
+        tourAutoBtn.setAttribute('aria-label', tourMode === 'auto' ? 'Pause auto tour' : 'Resume auto tour');
+    };
+
+    const goToStop = (index) => {
+        if (locationMarkers.length === 0) return;
+        currentTourIndex = ((index % locationMarkers.length) + locationMarkers.length) % locationMarkers.length;
+        const marker = locationMarkers[currentTourIndex];
+        if (marker) marker.fire('click');
+        updateTourBar();
+    };
+
+    // Touching Next/Prev pauses the auto tour into quiet manual stepping.
+    const pauseTour = () => {
+        if (tourMode !== 'auto') return;
+        if (tourInterval) {
+            clearInterval(tourInterval);
+            tourInterval = null;
+        }
+        tourMode = 'manual';
+        updateTourBar();
+    };
+
+    const resumeAuto = () => {
+        if (locationMarkers.length === 0) return;
+        if (tourInterval) clearInterval(tourInterval);
+        tourMode = 'auto';
+        setDockTourIcon(true);
+        tourInterval = setInterval(() => goToStop(currentTourIndex + 1), 10000);
+        updateTourBar();
+    };
 
     const stopTour = () => {
-        if (!tourInterval) return;
-        clearInterval(tourInterval);
-        tourInterval = null;
-        if (tourBtn) {
-            tourBtn.setAttribute('data-tooltip', 'Auto Tour');
-            const icon = tourBtn.querySelector('i');
-            if (icon) {
-                icon.classList.remove('ph-pause');
-                icon.classList.add('ph-play');
-            }
+        if (tourMode === 'off' && !tourInterval) return;
+        if (tourInterval) {
+            clearInterval(tourInterval);
+            tourInterval = null;
         }
+        tourMode = 'off';
+        setDockTourIcon(false);
+        updateTourBar();
     };
 
     const startTour = () => {
         if (locationMarkers.length === 0) return;
-        if (tourInterval) stopTour();
-
-        if (tourBtn) {
-            tourBtn.setAttribute('data-tooltip', 'Stop Tour');
-            const icon = tourBtn.querySelector('i');
-            if (icon) {
-                icon.classList.remove('ph-play');
-                icon.classList.add('ph-pause');
-            }
-        }
-
-        const nextLocation = () => {
-            currentTourIndex = (currentTourIndex + 1) % locationMarkers.length;
-            const marker = locationMarkers[currentTourIndex];
-            if (marker) marker.fire('click');
-        };
-
-        nextLocation(); // start immediately
-        tourInterval = setInterval(nextLocation, 10000); // every 10 seconds
+        stopTour();
+        tourMode = 'auto';
+        setDockTourIcon(true);
+        goToStop(currentTourIndex + 1); // start immediately
+        tourInterval = setInterval(() => goToStop(currentTourIndex + 1), 10000); // every 10 seconds
+        updateTourBar();
     };
+
+    if (tourPrevBtn) {
+        tourPrevBtn.addEventListener('click', () => {
+            triggerHaptic();
+            if (tourMode === 'auto') pauseTour();
+            if (tourMode !== 'manual' || currentTourIndex <= 0) return;
+            goToStop(currentTourIndex - 1);
+        });
+    }
+
+    if (tourNextBtn) {
+        tourNextBtn.addEventListener('click', () => {
+            triggerHaptic();
+            if (tourMode === 'auto') pauseTour();
+            if (tourMode === 'off') tourMode = 'manual';
+            if (currentTourIndex >= locationMarkers.length - 1) {
+                stopTour(); // Finish
+                return;
+            }
+            goToStop(currentTourIndex + 1);
+        });
+    }
+
+    if (tourAutoBtn) {
+        tourAutoBtn.addEventListener('click', () => {
+            triggerHaptic();
+            if (tourMode === 'auto') {
+                pauseTour();
+            } else {
+                resumeAuto();
+            }
+        });
+    }
 
     // Initialize Map
     const map = L.map('map', {
@@ -569,7 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tourBtn) {
         tourBtn.addEventListener('click', () => {
             triggerHaptic();
-            if (tourInterval) {
+            if (tourMode !== 'off') {
                 stopTour();
             } else {
                 startTour();
