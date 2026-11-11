@@ -749,7 +749,8 @@ body, html {
     margin: -8px 0 18px 0;
 }
 
-.tour-bar[hidden] {
+.tour-bar[hidden],
+.tour-quiet[hidden] {
     display: none;
 }
 
@@ -827,6 +828,22 @@ body, html {
 
 .tour-next:active {
     transform: scale(0.94);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #info-content > .tour-bar,
+    #info-content > .action-bar {
+        transition: none;
+    }
+    .tour-next,
+    .tour-quiet {
+        transition: none;
+    }
+    .tour-next:hover,
+    .tour-next:active,
+    .tour-quiet:active {
+        transform: none;
+    }
 }
 
 /* While touring, the stepper owns the single bright action. */
